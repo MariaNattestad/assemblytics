@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 # Originally by Mike Schatz, modified by Maria Nattestad
 # github.com/marianattestad/assemblytics
