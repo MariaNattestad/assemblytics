@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Author: Maria Nattestad
 # github.com/marianattestad/assemblytics
@@ -137,7 +137,9 @@ def run(args):
         if flip_by_query[query_name] == True:
             fields[2] = int(fields[5]) - int(fields[2])
             fields[3] = int(fields[5]) - int(fields[3])
-            alignment_length = abs(int(fields[2])-int(fields[1]))
+            alignment_length = abs(int(fields[2]) - int(fields[1]))
+        else:
+            alignment_length = abs(int(fields[3]) - int(fields[2]))
         fields.append(alignment_length)
         if fields[8] == "unique":
             uniques.append(fields)
