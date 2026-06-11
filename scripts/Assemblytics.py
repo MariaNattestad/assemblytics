@@ -19,9 +19,12 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
 from Assemblytics_between_alignments import run as run_between_alignments
+from Assemblytics_dotplot import run as run_dotplot
 from Assemblytics_index import run as run_index
+from Assemblytics_Nchart import run as run_nchart
 from Assemblytics_summary import SVtable as run_summary
 from Assemblytics_uniq_anchor import run as run_uniq_anchor
+from Assemblytics_variant_charts import run as run_variant_charts
 from Assemblytics_within_alignment import run as run_within_alignment
 
 
@@ -100,11 +103,12 @@ def write_variant_preview(output_prefix, num_lines=10):
 
 def zip_results(output_prefix):
     zip_path = output_prefix + ".Assemblytics_results.zip"
+    zip_filename = os.path.basename(zip_path)
     prefix_dir = os.path.dirname(output_prefix)
     prefix_name = os.path.basename(output_prefix)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
         for filename in os.listdir(prefix_dir or "."):
-            if filename.startswith(prefix_name + ".Assemblytics"):
+            if filename.startswith(prefix_name + ".Assemblytics") and filename != zip_filename:
                 archive.write(os.path.join(prefix_dir, filename), filename)
 
 
@@ -245,6 +249,12 @@ def run(args):
     write_coords_genome_files(output_prefix)
     run_summary_to_file(output_prefix, minimum_size, maximum_size)
     write_variant_preview(output_prefix)
+
+    print("6. Generating figures", file=sys.stderr)
+    run_variant_charts(output_prefix, minimum_size, maximum_size)
+    run_dotplot(output_prefix)
+    run_nchart(output_prefix)
+
     zip_results(output_prefix)
 
     summary_path = output_prefix + ".Assemblytics_structural_variants.summary"
@@ -256,10 +266,6 @@ def run(args):
         log_file,
         "SUMMARY,DONE,Step 5: Assemblytics_summary.py completed successfully",
     )
-
-    # TODO: Port Assemblytics_variant_charts.R to matplotlib/seaborn
-    # TODO: Port Assemblytics_dotplot.R to matplotlib/seaborn
-    # TODO: Port Assemblytics_Nchart.R to matplotlib/seaborn
 
 
 def main():
