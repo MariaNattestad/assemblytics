@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 
-# Author: Maria Nattestad
-# github.com/marianattestad/assemblytics
-
 """Python orchestrator for the Assemblytics pipeline."""
-
-from __future__ import print_function
 
 import argparse
 import io

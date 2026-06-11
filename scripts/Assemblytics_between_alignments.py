@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 # Originally by Mike Schatz, modified by Maria Nattestad
-# Ported from Perl to Python for the Assemblytics pipeline
-# github.com/marianattestad/assemblytics
+# Ported from Perl to Python for Assemblytics
 
 from __future__ import print_function
 

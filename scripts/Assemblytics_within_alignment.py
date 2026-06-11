@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-# Author: Maria Nattestad
-# github.com/marianattestad/assemblytics
-
-from __future__ import print_function
-
 import argparse
 import gzip
 
