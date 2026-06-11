@@ -7,6 +7,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
 def comma_format(num):
     return "{:,}".format(int(abs(num)))
@@ -181,7 +183,10 @@ def run(output_prefix, abs_min_var, abs_max_var):
         
         # Add category label
         ax.text(0.02, 0.85, category, transform=ax.transAxes, horizontalalignment='left', fontsize=12, fontweight='bold')
-        ax.legend(loc='upper right', fontsize=8)
+        
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            ax.legend(handles, labels, loc='upper right', fontsize=8)
 
     plt.xlabel("Variant size", fontsize=12)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
