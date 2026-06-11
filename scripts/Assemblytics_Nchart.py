@@ -65,7 +65,7 @@ def run(prefix):
     with_zeros = pd.concat([ref_cumsum_0, query_cumsum_0])
 
     plt.figure(figsize=(8, 8))
-    colors = {"Reference": "blue", "Query": "limegreen"}
+    colors = {"Reference": "limegreen", "Query": "blue"}
 
     if len(with_zeros) > 2:
         for source in ["Reference", "Query"]:
