@@ -268,11 +268,11 @@ def main():
         description="Assemblytics structural variant detection pipeline",
         usage=USAGE,
     )
-    parser.add_argument("delta", help="MUMmer delta file (.delta or .delta.gz)")
-    parser.add_argument("output_prefix", help="Output file prefix (may include a directory path)")
-    parser.add_argument("unique_length", type=int, help="Unique anchor length requirement")
-    parser.add_argument("minimum_size", type=int, help="Minimum variant size to call")
-    parser.add_argument("maximum_size", type=int, help="Maximum variant size to call")
+    parser.add_argument("-d", "--delta", help="MUMmer delta file (.delta or .delta.gz)", required=True)
+    parser.add_argument("-o", "--output_prefix", help="Output file prefix (may include a directory path)", required=True)
+    parser.add_argument("-l", "--unique_length", type=int, default=10000, help="Unique anchor length requirement (default: 10000)")
+    parser.add_argument("-min", "--minimum_size", type=int, default=50, help="Minimum variant size to call (default: 50)")
+    parser.add_argument("-max", "--maximum_size", type=int, default=10000, help="Maximum variant size to call (default: 10000)")
     parser.set_defaults(func=run)
     args = parser.parse_args()
     args.func(args)
