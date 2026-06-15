@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Assemblytics Pyodide PoC</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 2em; line-height: 1.5; }
+        #log { 
+            background: #1e1e1e; color: #d4d4d4; padding: 1em; 
+            border-radius: 4px; height: 300px; overflow-y: scroll;
+            font-family: monospace; white-space: pre-wrap;
+        }
+        .status { font-weight: bold; color: #007acc; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #plots img { max-width: 100%; border: 1px solid #ccc; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Assemblytics Pyodide PoC</h1>
+    <p>This proof-of-concept runs the Assemblytics Python backend entirely in your browser.</p>
+    
+    <div id="controls">
+        <button id="runBtn" disabled>Loading Pyodide...</button>
+    </div>
+
+    <h3>Progress Log</h3>
+    <div id="log">Initializing...</div>
+
+    <h3>Output Plots</h3>
+    <div id="plots"></div>
+
+    <script type="text/javascript">
+        const logEl = document.getElementById('log');
+        const runBtn = document.getElementById('runBtn');
+        const plotsEl = document.getElementById('plots');
+
+        // Capture console logs to the UI log
+        const oldConsoleLog = console.log;
+        console.log = function(...args) {
+            log(`[CONSOLE] ${args.join(' ')}`);
+            oldConsoleLog.apply(console, args);
+        };
+
+        window.onerror = function(message, source, lineno, colno, error) {
+            log(`[GLOBAL ERROR] ${message} at ${source}:${lineno}:${colno}`);
+        };
+
+        function log(msg) {
+            const entry = document.createElement('div');
+            entry.textContent = msg;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        async function main() {
+            try {
+                log("Loading Pyodide runtime...");
+                let pyodide = await loadPyodide();
+                log("Pyodide runtime loaded.");
+
+                log("Loading dependencies (numpy, pandas, matplotlib)... This may take 30-60 seconds on first load.");
+                await pyodide.loadPackage(["numpy", "pandas", "matplotlib"]);
+                log("Dependencies loaded successfully.");
+
+                // Set backend to Agg explicitly in the environment
+                await pyodide.runPythonAsync(`
+import matplotlib
+matplotlib.use('Agg')
+import os
+print(f"Current working directory: {os.getcwd()}")
+                `);
+
+                const scripts = [
+                    'Assemblytics_uniq_anchor.py',
+                    'Assemblytics_between_alignments.py',
+                    'Assemblytics_within_alignment.py',
+                    'Assemblytics_index.py',
+                    'Assemblytics_summary.py',
+                    'Assemblytics_variant_charts.py',
+                    'Assemblytics_dotplot.py',
+                    'Assemblytics_Nchart.py',
+                    'Assemblytics.py'
+                ];
+
+                log("Fetching and mounting analysis scripts...");
+                for (const script of scripts) {
+                    try {
+                        const response = await fetch(`../scripts/${script}`);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const content = await response.text();
+                        pyodide.FS.writeFile(script, content);
+                        log(`Mounted: ${script}`);
+                    } catch (e) {
+                        log(`Failed to mount ${script}: ${e.message}`);
+                    }
+                }
+
+                log("Downloading sample E. coli data...");
+                const deltaResponse = await fetch('../input_examples/Ecoli.delta.gz');
+                if (!deltaResponse.ok) throw new Error(`HTTP error! status: ${deltaResponse.status}`);
+                const deltaBuffer = await deltaResponse.arrayBuffer();
+                pyodide.FS.writeFile('sample.delta.gz', new Uint8Array(deltaBuffer));
+                log("Sample data ready in virtual filesystem.");
+
+                runBtn.textContent = "🚀 Run Assemblytics Analysis";
+                runBtn.disabled = false;
+                log("READY. Click the button above to start.");
+
+                runBtn.onclick = async () => {
+                    runBtn.disabled = true;
+                    runBtn.textContent = "⌛ Running Analysis...";
+                    log("\n--- Starting Analysis Pipeline ---");
+                    plotsEl.innerHTML = '';
+
+                    try {
+                        pyodide.setStdout({ batched: (str) => log(`[PYTHON] ${str}`) });
+                        pyodide.setStderr({ batched: (str) => log(`[PYTHON ERROR] ${str}`) });
+
+                        log("Invoking orchestrator...");
+                        const startTime = performance.now();
+                        
+                        await pyodide.runPythonAsync(`
+import argparse
+import sys
+from Assemblytics import run
+
+# Define arguments
+args = argparse.Namespace(
+    delta="sample.delta.gz",
+    output_prefix="poc_output",
+    unique_length=1000,
+    minimum_size=50,
+    maximum_size=10000
+)
+
+print("Arguments prepared. Calling run()...")
+run(args)
+print("run() call returned.")
+                        `);
+
+                        const endTime = performance.now();
+                        log(`Analysis finished in ${((endTime - startTime) / 1000).toFixed(2)} seconds.`);
+
+                        // List all files to see what was created
+                        const files = pyodide.FS.readdir('.');
+                        log(`Files in VFS: ${files.join(', ')}`);
+
+                        const plotFiles = files.filter(f => f.endsWith('.png') && f.startsWith('poc_output'));
+                        log(`Generated ${plotFiles.length} visual plots.`);
+                        
+                        for (const plotFile of plotFiles) {
+                            const data = pyodide.FS.readFile(plotFile);
+                            const blob = new Blob([data], { type: 'image/png' });
+                            const url = URL.createObjectURL(blob);
+                            
+                            const container = document.createElement('div');
+                            container.style.marginBottom = "20px";
+                            const title = document.createElement('h4');
+                            title.textContent = `📊 ${plotFile}`;
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.style.border = "1px solid #ddd";
+                            img.style.borderRadius = "4px";
+                            img.style.padding = "5px";
+                            img.style.background = "white";
+                            
+                            container.appendChild(title);
+                            container.appendChild(img);
+                            plotsEl.appendChild(container);
+                        }
+
+                    } catch (err) {
+                        log(`CRITICAL ERROR: ${err}`);
+                        console.error(err);
+                    } finally {
+                        runBtn.disabled = false;
+                        runBtn.textContent = "Run Again";
+                    }
+                };
+
+            } catch (err) {
+                log(`INITIALIZATION FAILED: ${err.message}`);
+                console.error(err);
+            }
+        }
+
+        main();
+    </script>
+</body>
+</html>
