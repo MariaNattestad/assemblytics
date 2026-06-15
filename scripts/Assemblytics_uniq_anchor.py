@@ -30,11 +30,8 @@ def run(args):
         print("Detected uncompressed delta file. Reading...")
    
     # Ignore the first two lines for now
-    print("\n")
-    print("Header (2 lines):")
-    print(header1)
-    print(f.readline().strip())
-    print("\n")
+    f.readline()
+    f.readline()
 
     linecounter = 0
 
@@ -90,10 +87,6 @@ def run(args):
         alignments_to_keep[query] = summarize_planesweep(lines_by_query[query], unique_length_required = unique_length,keep_small_uniques=keep_small_uniques)
 
         query_counter += 1
-        if (query_counter % num_query_step_to_report) == 0:
-            print("Progress: %d%%" % (int(query_counter*100/num_queries)))
-    print("Progress: 100%")
-
     print("Deciding which alignments to keep: %d seconds for %d queries" % (time.time()-before,num_queries))
     before = time.time()
 

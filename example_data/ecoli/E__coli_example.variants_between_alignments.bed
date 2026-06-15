@@ -1,0 +1,4 @@
+NC_000913.3	1972855	1978502	Assemblytics_b_1	5647	+	Deletion	5647	0	NZ_CP009685.1:1721649-1721649:+	between_alignments
+NC_000913.3	1873031	1873039	Assemblytics_b_2	777	+	Insertion	-8	769	NZ_CP009685.1:1821473-1822242:+	between_alignments
+NC_000913.3	1096961	1097583	Assemblytics_b_3	181	+	Tandem_expansion	-622	-441	NZ_CP009685.1:2597877-2598318:-	between_alignments
+NC_000913.3	4295948	4296271	Assemblytics_b_5	113	+	Tandem_contraction	-323	-436	NZ_CP009685.1:4040722-4041158:-	between_alignments

@@ -17,11 +17,8 @@ def run(args):
         print("Detected uncompressed delta file. Reading...")
    
     # Ignore the first two lines for now
-    print("\n")
-    print("Header (2 lines):")
-    print(header1)
-    print(f.readline().strip())
-    print("\n")
+    f.readline()
+    f.readline()
 
     linecounter = 0
 

@@ -142,23 +142,23 @@ def run(args):
     minimum_size = args.minimum_size
     maximum_size = args.maximum_size
 
-    print("Input delta file:", delta, file=sys.stderr)
-    print("Output prefix:", output_prefix, file=sys.stderr)
-    print("Unique anchor length:", unique_length, file=sys.stderr)
-    print("Minimum variant size to call:", minimum_size, file=sys.stderr)
-    print("Maximum variant size to call:", maximum_size, file=sys.stderr)
+    print("Input delta file:", delta)
+    print("Output prefix:", output_prefix)
+    print("Unique anchor length:", unique_length)
+    print("Minimum variant size to call:", minimum_size)
+    print("Maximum variant size to call:", maximum_size)
 
     output_dir = os.path.dirname(output_prefix)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
     log_file = os.path.join(output_dir, "progress.log") if output_dir else "progress.log"
-    print("Logging progress updates in", log_file, file=sys.stderr)
+    print("Logging progress updates in", log_file)
 
     log_progress(log_file, os.path.basename(output_prefix))
     log_progress(log_file, "STARTING,DONE,Starting unique anchor filtering.")
 
-    print("1. Filter delta file", file=sys.stderr)
+    print("1. Filter delta file")
     run_uniq_anchor(
         argparse.Namespace(
             delta=delta,
@@ -188,7 +188,7 @@ def run(args):
         "Now finding variants between alignments.",
     )
 
-    print("2. Finding variants between alignments", file=sys.stderr)
+    print("2. Finding variants between alignments")
     between_path = output_prefix + ".variants_between_alignments.bed"
     run_between_alignments(
         argparse.Namespace(
@@ -215,7 +215,7 @@ def run(args):
         "Now finding variants within alignments.",
     )
 
-    print("3. Finding variants within alignments", file=sys.stderr)
+    print("3. Finding variants within alignments")
     within_path = output_prefix + ".variants_within_alignments.bed"
     run_within_alignment(
         argparse.Namespace(
@@ -238,7 +238,7 @@ def run(args):
         "Now combining the two sets of variants together.",
     )
 
-    print("4. Combine variants between and within alignments", file=sys.stderr)
+    print("4. Combine variants between and within alignments")
     combined_path = combine_variants(output_prefix)
     if not os.path.exists(combined_path):
         fail(log_file, "COMBINE,FAIL,Step 4: combining variants failed")
@@ -250,7 +250,7 @@ def run(args):
         "Now generating figures and summary statistics.",
     )
 
-    print("5. Index coordinates and generate summary statistics", file=sys.stderr)
+    print("5. Index coordinates and generate summary statistics")
     run_index(
         argparse.Namespace(
             coords=output_prefix + ".coords.csv",
@@ -263,7 +263,7 @@ def run(args):
     print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics_structural_variants.summary")
     print("FILE_READY:" + os.path.basename(output_prefix) + ".variant_preview.txt")
 
-    print("6. Generating figures", file=sys.stderr)
+    print("6. Generating figures")
     run_variant_charts(output_prefix, minimum_size, maximum_size)
     # Charts are ready incrementally too
     charts = [f for f in os.listdir(output_dir or ".") if f.startswith(os.path.basename(output_prefix) + ".Assemblytics.size_distributions") and f.endswith(".png")]

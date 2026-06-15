@@ -1,0 +1,40 @@
+Insertion
+                         Count       Total bp
+         50-500 bp:        600          91303
+     500-10,000 bp:        382         842585
+             Total:        982         933888
+
+Deletion
+                         Count       Total bp
+         50-500 bp:        523          84443
+     500-10,000 bp:        277         545344
+             Total:        800         629787
+
+Tandem_expansion
+                         Count       Total bp
+         50-500 bp:         38           8556
+     500-10,000 bp:         50         161304
+             Total:         88         169860
+
+Tandem_contraction
+                         Count       Total bp
+         50-500 bp:         21           3466
+     500-10,000 bp:         17          45749
+             Total:         38          49215
+
+Repeat_expansion
+                         Count       Total bp
+         50-500 bp:        347          74873
+     500-10,000 bp:        521        1329750
+             Total:        868        1404623
+
+Repeat_contraction
+                         Count       Total bp
+         50-500 bp:        359          79380
+     500-10,000 bp:        641        1792510
+             Total:       1000        1871890
+
+Total number of all variants: 3,776
+Total bases affected by all variants: 5.06 Mbp
+Total number of structural variants: 3,776
+Total bases affected by structural variants: 5.06 Mbp
