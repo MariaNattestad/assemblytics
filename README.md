@@ -46,8 +46,13 @@ Assemblytics analyzes alignments of a "query" assembly to a "reference" genome (
 4. **Integration and Categorization:** All identified variants are combined and categorized by type (Insertion, Deletion, Tandem Expansion/Contraction, Repeat Expansion/Contraction) and size.
 5. **Visualization and Summary:** Finally, the tool generates summary statistics and several plots, including a dot plot of filtered alignments, an Nchart of the assembly, and size distributions of all called variants.
 
+## FAQ
+
+### What do the different variant types mean? What is tandem expansion versus repeat expansion?
+
 ![variants types in Assemblytics](variants_types_in_Assemblytics.jpg)
 
+### What is unique anchor filtering for?
 See this example showing the point of unique anchor filtering (from the bioRxiv preprint supplementary materials): ![unique anchor filtering](unique_anchor_filtering.png)
 
 <sub>
