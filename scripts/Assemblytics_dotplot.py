@@ -39,7 +39,7 @@ def run(prefix):
     coords = coords.sort_values('ref')
 
     # Get chromosome lengths and calculate offsets
-    chr_lengths = coords.groupby('ref')['ref_length'].max().reindex(all_refs_ordered).fillna(0)
+    chr_lengths = coords.groupby('ref', observed=False)['ref_length'].max().reindex(all_refs_ordered).fillna(0)
     chr_offsets = chr_lengths.cumsum().shift(1).fillna(0)
 
     def get_ref_loc(chrom, pos):
