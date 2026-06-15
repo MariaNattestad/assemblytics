@@ -5,7 +5,6 @@
 import argparse
 import io
 import os
-import subprocess
 import sys
 import zipfile
 
@@ -75,25 +74,35 @@ def write_coords_genome_files(output_prefix):
             query_out.write("%s\t%d\n" % (name, length))
 
 
+def format_column_table(lines):
+    if not lines:
+        return ""
+    # Split lines into fields
+    table = [line.split("\t") for line in lines]
+    # Calculate max width for each column
+    num_cols = max(len(row) for row in table)
+    col_widths = [0] * num_cols
+    for row in table:
+        for i, field in enumerate(row):
+            col_widths[i] = max(col_widths[i], len(field))
+    
+    # Format rows
+    formatted_rows = []
+    for row in table:
+        formatted_row = "  ".join(field.ljust(col_widths[i]) for i, field in enumerate(row))
+        formatted_rows.append(formatted_row)
+    return "\n".join(formatted_rows) + "\n"
+
+
 def write_variant_preview(output_prefix, num_lines=10):
     bed_path = output_prefix + ".Assemblytics_structural_variants.bed"
     preview_path = output_prefix + ".variant_preview.txt"
     with open(bed_path) as bed:
         preview_lines = [line.rstrip("\n") for index, line in enumerate(bed) if index < num_lines]
-    column = subprocess.run(
-        ["column", "-t"],
-        input="\n".join(preview_lines) + "\n",
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if column.returncode == 0:
-        with open(preview_path, "w") as preview:
-            preview.write(column.stdout)
-    else:
-        with open(preview_path, "w") as preview:
-            for line in preview_lines:
-                preview.write("\t".join(line.split()) + "\n")
+    
+    formatted_preview = format_column_table(preview_lines)
+    with open(preview_path, "w") as preview:
+        preview.write(formatted_preview)
 
 
 def zip_results(output_prefix):
