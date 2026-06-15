@@ -212,6 +212,9 @@
                 case 'log':
                     log(data.message, data.stream);
                     break;
+                case 'file_ready':
+                    displayResult(data.name, data.data);
+                    break;
                 case 'error':
                     log(data.message, 'error');
                     ui.runBtn.disabled = false;
@@ -219,7 +222,6 @@
                     break;
                 case 'done':
                     log("--- Analysis Complete ---");
-                    processResults(data.results);
                     ui.runBtn.disabled = false;
                     ui.runBtn.textContent = "🚀 Run Analysis";
                     break;
@@ -307,32 +309,27 @@
             });
         };
 
-        function processResults(results) {
-            const plots = results.filter(r => r.name.endsWith('.png'));
-            const dataFiles = results.filter(r => !r.name.endsWith('.png'));
-
-            plots.forEach(plot => {
-                const blob = new Blob([plot.data], { type: 'image/png' });
+        function displayResult(name, data) {
+            if (name.endsWith('.png')) {
+                const blob = new Blob([data], { type: 'image/png' });
                 const url = URL.createObjectURL(blob);
                 
                 const card = document.createElement('div');
                 card.className = 'card plot-card';
-                card.innerHTML = `<h4>${plot.name}</h4><img src="${url}">`;
+                card.innerHTML = `<h4>📊 ${name}</h4><img src="${url}">`;
                 ui.plots.appendChild(card);
-            });
-
-            dataFiles.forEach(file => {
-                const blob = new Blob([file.data], { type: 'application/octet-stream' });
+            } else {
+                const blob = new Blob([data], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
                 
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = file.name;
+                link.download = name;
                 link.className = 'badge';
                 link.style.textDecoration = 'none';
-                link.textContent = `💾 ${file.name}`;
+                link.textContent = `💾 ${name}`;
                 ui.fileList.appendChild(link);
-            });
+            }
         }
     </script>
 </body>

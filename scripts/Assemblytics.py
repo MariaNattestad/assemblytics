@@ -167,6 +167,9 @@ def run(args):
             keep_small_uniques=True,
         )
     )
+    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics_assembly_stats.txt")
+    print("FILE_READY:" + os.path.basename(output_prefix) + ".coords.tab")
+    print("FILE_READY:" + os.path.basename(output_prefix) + ".coords.csv")
 
     filtered_delta = "{}.Assemblytics.unique_length_filtered_l{}.delta.gz".format(
         output_prefix, unique_length
@@ -177,6 +180,7 @@ def run(args):
             "UNIQFILTER,FAIL,Step 1: Assemblytics_uniq_anchor.py failed: "
             "Possible problem with Python or Python packages on server.",
         )
+    print("FILE_READY:" + os.path.basename(filtered_delta))
 
     log_progress(
         log_file,
@@ -203,6 +207,7 @@ def run(args):
             "BETWEEN,FAIL,Step 2: Assemblytics_between_alignments.py failed: "
             "Possible problem with Python on server.",
         )
+    print("FILE_READY:" + os.path.basename(between_path))
 
     log_progress(
         log_file,
@@ -225,6 +230,7 @@ def run(args):
             "WITHIN,FAIL,Step 3: Assemblytics_within_alignment.py failed: "
             "Possible problem before this step or with Python on server.",
         )
+    print("FILE_READY:" + os.path.basename(within_path))
 
     log_progress(
         log_file,
@@ -236,6 +242,7 @@ def run(args):
     combined_path = combine_variants(output_prefix)
     if not os.path.exists(combined_path):
         fail(log_file, "COMBINE,FAIL,Step 4: combining variants failed")
+    print("FILE_READY:" + os.path.basename(combined_path))
 
     log_progress(
         log_file,
@@ -253,13 +260,24 @@ def run(args):
     write_coords_genome_files(output_prefix)
     run_summary_to_file(output_prefix, minimum_size, maximum_size)
     write_variant_preview(output_prefix)
+    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics_structural_variants.summary")
+    print("FILE_READY:" + os.path.basename(output_prefix) + ".variant_preview.txt")
 
     print("6. Generating figures", file=sys.stderr)
     run_variant_charts(output_prefix, minimum_size, maximum_size)
+    # Charts are ready incrementally too
+    charts = [f for f in os.listdir(output_dir or ".") if f.startswith(os.path.basename(output_prefix) + ".Assemblytics.size_distributions") and f.endswith(".png")]
+    for chart in charts:
+        print("FILE_READY:" + chart)
+
     run_dotplot(output_prefix)
+    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics.Dotplot_filtered.png")
+    
     run_nchart(output_prefix)
+    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics.Nchart.png")
 
     zip_results(output_prefix)
+    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics_results.zip")
 
     summary_path = output_prefix + ".Assemblytics_structural_variants.summary"
     with open(summary_path) as summary:
