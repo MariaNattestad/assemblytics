@@ -103,7 +103,7 @@ def run(prefix):
     from matplotlib.lines import Line2D
     legend_elements = [Line2D([0], [0], color='black', lw=2, label='unique'),
                        Line2D([0], [0], color='red', lw=2, label='repetitive')]
-    plt.legend(handles=legend_elements, title="Filter")
+    plt.legend(handles=legend_elements, title="Filter", loc='upper right')
 
     plt.tight_layout()
     plt.savefig(plot_output_filename + ".png", dpi=200)

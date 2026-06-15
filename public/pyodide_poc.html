@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assemblytics - Serverless Variant Detection</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
     <style>
         :root {
             --primary: #007acc;
@@ -83,7 +82,7 @@
         <div>
             <h2 style="margin:0; color: var(--primary);">Assemblytics <span style="font-weight: 200; font-size: 0.8em; color: #999;">Serverless Edition</span></h2>
         </div>
-        <div id="runtime-status" class="help-text">Initializing Python runtime...</div>
+        <div id="runtime-status" class="help-text">Initializing Worker...</div>
     </header>
 
     <main>
@@ -131,7 +130,7 @@
             <div style="flex:1"></div>
             
             <div class="help-text" style="font-size:0.75rem; border-top:1px solid #eee; padding-top:1rem;">
-                Privacy: All processing happens in your browser memory. Your data never leaves your computer.
+                Privacy: All processing happens in your browser memory via Web Workers. Your data never leaves your computer.
             </div>
         </div>
 
@@ -155,7 +154,7 @@
             
             <div id="intro-area" class="card">
                 <h2>Welcome to Assemblytics</h2>
-                <p>Assemblytics detects structural variants from an assembly aligned to a reference genome. This version runs entirely in your web browser using WebAssembly.</p>
+                <p>Assemblytics detects structural variants from an assembly aligned to a reference genome. This version runs entirely in your web browser using WebAssembly and Web Workers.</p>
                 <h3>How to use:</h3>
                 <ol>
                     <li>Generate a <code>.delta</code> file using MUMmer's <code>nucmer</code>:
@@ -171,7 +170,7 @@
     </main>
 
     <script type="text/javascript">
-        let pyodide = null;
+        const worker = new Worker('worker.js');
         let selectedFileData = null;
         let selectedFileName = null;
 
@@ -199,6 +198,50 @@
             ui.log.appendChild(entry);
             ui.log.scrollTop = ui.log.scrollHeight;
         }
+
+        worker.onmessage = async (e) => {
+            const data = e.data;
+            switch (data.type) {
+                case 'status':
+                    ui.status.textContent = data.message;
+                    if (data.message === 'Environment Ready') {
+                        ui.runBtn.disabled = false;
+                        ui.runBtn.textContent = "🚀 Run Analysis";
+                    }
+                    break;
+                case 'log':
+                    log(data.message, data.stream);
+                    break;
+                case 'error':
+                    log(data.message, 'error');
+                    ui.runBtn.disabled = false;
+                    ui.runBtn.textContent = "🚀 Run Analysis";
+                    break;
+                case 'done':
+                    log("--- Analysis Complete ---");
+                    processResults(data.results);
+                    ui.runBtn.disabled = false;
+                    ui.runBtn.textContent = "🚀 Run Analysis";
+                    break;
+            }
+        };
+
+        // Initialize worker
+        worker.postMessage({ type: 'init' });
+
+        // Fetch and mount scripts
+        const scripts = [
+            'Assemblytics_uniq_anchor.py', 'Assemblytics_between_alignments.py',
+            'Assemblytics_within_alignment.py', 'Assemblytics_index.py',
+            'Assemblytics_summary.py', 'Assemblytics_variant_charts.py',
+            'Assemblytics_dotplot.py', 'Assemblytics_Nchart.py', 'Assemblytics.py'
+        ];
+
+        scripts.forEach(async (script) => {
+            const response = await fetch(`../scripts/${script}`);
+            const content = await response.text();
+            worker.postMessage({ type: 'mount', name: script, content: content });
+        });
 
         // File handling
         ui.dropzone.onclick = () => ui.fileInput.click();
@@ -249,42 +292,7 @@
             }
         };
 
-        async function initPyodide() {
-            try {
-                pyodide = await loadPyodide();
-                ui.status.textContent = "Loading scientific packages...";
-                await pyodide.loadPackage(["numpy", "pandas", "matplotlib"]);
-                
-                await pyodide.runPythonAsync(`
-import matplotlib
-matplotlib.use('Agg')
-import os
-                `);
-
-                const scripts = [
-                    'Assemblytics_uniq_anchor.py', 'Assemblytics_between_alignments.py',
-                    'Assemblytics_within_alignment.py', 'Assemblytics_index.py',
-                    'Assemblytics_summary.py', 'Assemblytics_variant_charts.py',
-                    'Assemblytics_dotplot.py', 'Assemblytics_Nchart.py', 'Assemblytics.py'
-                ];
-
-                ui.status.textContent = "Mounting scripts...";
-                for (const script of scripts) {
-                    const response = await fetch(`../scripts/${script}`);
-                    const content = await response.text();
-                    pyodide.FS.writeFile(script, content);
-                }
-
-                ui.status.textContent = "Environment Ready";
-                ui.runBtn.disabled = false;
-                ui.runBtn.textContent = "🚀 Run Analysis";
-            } catch (err) {
-                ui.status.textContent = "Initialization Failed";
-                log(`Failed to initialize: ${err.message}`, 'error');
-            }
-        }
-
-        ui.runBtn.onclick = async () => {
+        ui.runBtn.onclick = () => {
             if (!selectedFileData) {
                 alert("Please select a file first!");
                 return;
@@ -299,80 +307,47 @@ import os
             ui.log.innerHTML = '';
 
             log(`--- Starting Pipeline for ${selectedFileName} ---`);
-            
-            try {
-                // Clear old outputs from VFS
-                pyodide.runPython("import os; [os.remove(f) for f in os.listdir('.') if f.startswith('output')]");
-                
-                // Write input to VFS
-                pyodide.FS.writeFile('input.delta.gz', selectedFileData);
 
-                pyodide.setStdout({ batched: (str) => log(str, 'python') });
-                pyodide.setStderr({ batched: (str) => log(str, 'error') });
+            const params = {
+                unique_length: document.getElementById('unique_length').value,
+                min_size: document.getElementById('min_size').value,
+                max_size: document.getElementById('max_size').value
+            };
 
-                const params = {
-                    unique_length: document.getElementById('unique_length').value,
-                    min_size: document.getElementById('min_size').value,
-                    max_size: document.getElementById('max_size').value
-                };
-
-                await pyodide.runPythonAsync(`
-import argparse
-from Assemblytics import run
-args = argparse.Namespace(
-    delta="input.delta.gz",
-    output_prefix="output",
-    unique_length=${params.unique_length},
-    minimum_size=${params.min_size},
-    maximum_size=${params.max_size}
-)
-run(args)
-                `);
-
-                log("--- Analysis Complete ---");
-                processOutputs();
-
-            } catch (err) {
-                log(`Pipeline Error: ${err.message}`, 'error');
-                console.error(err);
-            } finally {
-                ui.runBtn.disabled = false;
-                ui.runBtn.textContent = "🚀 Run Analysis";
-            }
+            worker.postMessage({
+                type: 'run',
+                fileData: selectedFileData,
+                params: params
+            });
         };
 
-        function processOutputs() {
-            const files = pyodide.FS.readdir('.');
-            const plots = files.filter(f => f.endsWith('.png'));
-            const dataFiles = files.filter(f => f.startsWith('output') && !f.endsWith('.png'));
+        function processResults(results) {
+            const plots = results.filter(r => r.name.endsWith('.png'));
+            const dataFiles = results.filter(r => !r.name.endsWith('.png'));
 
-            plots.forEach(plotFile => {
-                const data = pyodide.FS.readFile(plotFile);
-                const blob = new Blob([data], { type: 'image/png' });
+            plots.forEach(plot => {
+                const blob = new Blob([plot.data], { type: 'image/png' });
                 const url = URL.createObjectURL(blob);
                 
                 const card = document.createElement('div');
                 card.className = 'card plot-card';
-                card.innerHTML = `<h4>${plotFile}</h4><img src="${url}">`;
+                card.innerHTML = `<h4>${plot.name}</h4><img src="${url}">`;
                 ui.plots.appendChild(card);
             });
 
-            dataFiles.forEach(dataFile => {
-                const data = pyodide.FS.readFile(dataFile);
-                const blob = new Blob([data], { type: 'application/octet-stream' });
+            dataFiles.forEach(file => {
+                const blob = new Blob([file.data], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
                 
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = dataFile;
+                link.download = file.name;
                 link.className = 'badge';
                 link.style.textDecoration = 'none';
-                link.textContent = `💾 ${dataFile}`;
+                link.textContent = `💾 ${file.name}`;
                 ui.fileList.appendChild(link);
             });
         }
-
-        initPyodide();
     </script>
 </body>
 </html>
