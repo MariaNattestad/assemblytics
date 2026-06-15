@@ -229,29 +229,6 @@
         // Initialize worker
         worker.postMessage({ type: 'init' });
 
-        // Fetch and mount scripts
-        const scripts = [
-            'Assemblytics_uniq_anchor.py', 'Assemblytics_between_alignments.py',
-            'Assemblytics_within_alignment.py', 'Assemblytics_index.py',
-            'Assemblytics_summary.py', 'Assemblytics_variant_charts.py',
-            'Assemblytics_dotplot.py', 'Assemblytics_Nchart.py', 'Assemblytics.py'
-        ];
-
-        let mountedCount = 0;
-        scripts.forEach(async (script) => {
-            try {
-                const response = await fetch(`../scripts/${script}`);
-                const content = await response.text();
-                worker.postMessage({ type: 'mount', name: script, content: content });
-                mountedCount++;
-                if (mountedCount === scripts.length) {
-                    console.log("All scripts sent to worker for mounting");
-                }
-            } catch (err) {
-                log(`Failed to fetch ${script}: ${err.message}`, 'error');
-            }
-        });
-
         // File handling
         ui.dropzone.onclick = () => ui.fileInput.click();
         ui.fileInput.onchange = async (e) => handleFile(e.target.files[0]);
