@@ -16,3 +16,4 @@ public/user_uploads/*
 python_env
 reproducibility
 
+test_output/

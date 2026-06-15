@@ -1,10 +1,4 @@
-#!/usr/bin/env python
-
-# Author: Maria Nattestad
-# Email: mnattest@cshl.edu
-# This script is part of Assemblytics, a program to detect and analyze structural variants from an assembly aligned to a reference genome using MUMmer. 
-
-from __future__ import print_function
+#!/usr/bin/env python3
 
 import argparse
 import numpy as np
