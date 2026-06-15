@@ -114,7 +114,6 @@ def run(args):
         fout_query_index.write("%s,%d,%s\n" % (query,query_lengths[query],"~".join(references_by_query[query])))
     fout_query_index.close()
 
-    
 
     f = open(coords)
     fout = open(output_prefix + ".oriented_coords.csv",'w')

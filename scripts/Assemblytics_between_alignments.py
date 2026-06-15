@@ -3,8 +3,6 @@
 # Originally by Mike Schatz, modified by Maria Nattestad
 # Ported from Perl to Python for Assemblytics
 
-from __future__ import print_function
-
 import argparse
 import sys
 
