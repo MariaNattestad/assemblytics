@@ -43,6 +43,13 @@ self.onmessage = async (e) => {
 
             await pyodide.runPythonAsync(`
 import argparse
+import sys
+import os
+
+# Ensure the current directory is in the path so we can import Assemblytics
+if os.getcwd() not in sys.path:
+    sys.path.append(os.getcwd())
+
 from Assemblytics import run
 args = argparse.Namespace(
     delta="input.delta.gz",
