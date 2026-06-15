@@ -1,0 +1,12 @@
+211000022279123	590	590	Assemblytics_w_1	66	+	Insertion	0	66	JSAE01000363.1:63182-63248:+	within_alignment
+2R	2596914	2597000	Assemblytics_w_2	86	+	Deletion	86	0	JSAE01000154.1:1013287-1013287:+	within_alignment
+2R	2634571	2634571	Assemblytics_w_3	77	+	Insertion	0	77	JSAE01000154.1:924124-924201:+	within_alignment
+3L	25652431	25652431	Assemblytics_w_4	54	+	Insertion	0	54	JSAE01000561.1:1026266-1026320:+	within_alignment
+3L	1069299	1069363	Assemblytics_w_5	64	+	Deletion	64	0	JSAE01000167.1:1061737-1061737:+	within_alignment
+3L	5223751	5223805	Assemblytics_w_6	54	+	Deletion	54	0	JSAE01000167.1:5223265-5223265:+	within_alignment
+3L	11507228	11507228	Assemblytics_w_7	50	+	Insertion	0	50	JSAE01000167.1:11521204-11521254:+	within_alignment
+3R	6790047	6790112	Assemblytics_w_8	65	+	Deletion	65	0	JSAE01000284.1:455338-455338:+	within_alignment
+3R	10652411	10652468	Assemblytics_w_9	57	+	Deletion	57	0	JSAE01000284.1:4323072-4323072:+	within_alignment
+3R	13478072	13478148	Assemblytics_w_10	76	+	Deletion	76	0	JSAE01000271.1:16319-16319:+	within_alignment
+3R	266127	266193	Assemblytics_w_11	66	+	Deletion	66	0	JSAE01000031.1:30188-30188:+	within_alignment
+4	98201	98201	Assemblytics_w_12	75	+	Insertion	0	75	JSAE01000070.1:330140-330215:+	within_alignment

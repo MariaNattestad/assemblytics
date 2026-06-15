@@ -1,0 +1,16 @@
+Reference: dmel-all-chromosome-r6.09.fasta
+Number of sequences: 1,388
+Total sequence length: 142.68 Mbp
+Mean: 102.8 Kbp
+Min: 1.0 Kbp
+Max: 32.08 Mbp
+N50: 25.29 Mbp
+
+
+Query: GCA_000778455.1_ASM77845v1_genomic.fna
+Number of sequences: 787
+Total sequence length: 163.98 Mbp
+Mean: 208.36 Kbp
+Min: 8.17 Kbp
+Max: 25.79 Mbp
+N50: 13.64 Mbp

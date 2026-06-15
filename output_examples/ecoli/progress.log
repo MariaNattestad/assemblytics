@@ -1,0 +1,7 @@
+E__coli_example
+STARTING,DONE,Starting unique anchor filtering.
+UNIQFILTER,DONE,Step 1: Assemblytics_uniq_anchor.py completed successfully. Now finding variants between alignments.
+BETWEEN,DONE,Step 2: Assemblytics_between_alignments.pl completed successfully. Now finding variants within alignments.
+WITHIN,DONE,Step 3: Assemblytics_within_alignment.py completed successfully. Now combining the two sets of variants together.
+COMBINE,DONE,Step 4: Variants combined successfully. Now generating figures and summary statistics.
+SUMMARY,DONE,Step 5: Assemblytics_summary.py completed successfully

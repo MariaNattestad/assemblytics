@@ -1,0 +1,10 @@
+#reference      ref_start  ref_stop  ID                 size  strand  type                ref_gap_size  query_gap_size  query_coordinates               method
+ref|NC_001147|  31115      31115     Assemblytics_w_1   63    +       Insertion           0             63              JSAC01000002.1:10074-10137:+    within_alignment
+ref|NC_001139|  701186     712546    Assemblytics_b_3   579   +       Repeat_expansion    11360         11939           JSAC01000001.1:379046-390985:+  between_alignments
+ref|NC_001139|  529925     530056    Assemblytics_b_6   90    +       Tandem_expansion    -131          -41             JSAC01000001.1:564979-565020:-  between_alignments
+ref|NC_001148|  850637     856555    Assemblytics_b_9   5931  +       Deletion            5918          -13             JSAC01000003.1:850755-850768:-  between_alignments
+ref|NC_001145|  190083     202186    Assemblytics_b_11  5732  +       Repeat_expansion    12103         17835           JSAC01000004.1:184674-202509:+  between_alignments
+ref|NC_001145|  748219     748223    Assemblytics_b_12  5929  +       Insertion           -4            5925            JSAC01000004.1:748491-754416:+  between_alignments
+ref|NC_001145|  908132     908217    Assemblytics_b_13  1116  +       Tandem_expansion    -85           1031            JSAC01000004.1:914406-915437:+  between_alignments
+ref|NC_001146|  96609      102559    Assemblytics_b_14  111   +       Repeat_expansion    5950          6061            JSAC01000005.1:96986-103047:+   between_alignments
+ref|NC_001134|  258789     266173    Assemblytics_b_16  7255  +       Repeat_contraction  7384          129             JSAC01000006.1:258926-259055:+  between_alignments

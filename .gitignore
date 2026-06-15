@@ -1,19 +1,2 @@
-public/user_data/*
-!public/user_data/.htaccess
-!public/user_data/ecoli
-!public/user_data/yeast
-!public/user_data/drosophila
-!public/user_data/human
-!public/user_data/arabidopsis
+test_output
 
-
-public/user_uploads/*
-!public/user_uploads/.htaccess
-
-
-*.delta
-!public/sample.delta
-python_env
-reproducibility
-
-test_output/

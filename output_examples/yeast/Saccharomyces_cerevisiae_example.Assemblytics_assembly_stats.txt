@@ -1,0 +1,16 @@
+Reference: S288C_reference_sequence_R64-2-1_20150113.fsa
+Number of sequences: 17
+Total sequence length: 12.16 Mbp
+Mean: 715.12 Kbp
+Min: 85.78 Kbp
+Max: 1.53 Mbp
+N50: 924.43 Kbp
+
+
+Query: GCA_000773925.1_ASM77392v1_genomic.fna
+Number of sequences: 37
+Total sequence length: 12.51 Mbp
+Mean: 337.98 Kbp
+Min: 7.99 Kbp
+Max: 1.55 Mbp
+N50: 818.52 Kbp
