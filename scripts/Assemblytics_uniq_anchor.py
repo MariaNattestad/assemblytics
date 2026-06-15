@@ -12,22 +12,22 @@ def run(args):
     unique_length = args.unique_length
     output_filename = args.out
     keep_small_uniques = args.keep_small_uniques
-    if keep_small_uniques:
-        print("Keeping fully unique alignments even if they are below the unique anchor length of", unique_length, "bp")
-    else:
-        print("Discarding all alignments below the unique anchor length of", unique_length, "bp")
-        print("Use --keep-small-uniques to keep all the fully unique alignments even below this length")
-    if unique_length == 10000:
-        print("Use --unique-length X to set the unique anchor length requirement. Default is 10000, such that each alignment must have at least 10000 bp from the query that are not included in any other alignments.")
+    # if keep_small_uniques:
+    #     print("Keeping fully unique alignments even if they are below the unique anchor length of", unique_length, "bp")
+    # else:
+    #     print("Discarding all alignments below the unique anchor length of", unique_length, "bp")
+    #     print("Use --keep-small-uniques to keep all the fully unique alignments even below this length")
+    # if unique_length == 10000:
+    #     print("Use --unique-length X to set the unique anchor length requirement. Default is 10000, such that each alignment must have at least 10000 bp from the query that are not included in any other alignments.")
 
     try:
         f = gzip.open(filename, 'rt')
         header1 = f.readline().strip()
-        print("Detected gzipped delta file. Reading...")
+        # Detected gzipped delta file.
     except:
         f = open(filename, 'r')
         header1 = f.readline().strip()
-        print("Detected uncompressed delta file. Reading...")
+        # Detected uncompressed delta file.
    
     # Skip the second line
     f.readline()
@@ -65,14 +65,11 @@ def run(args):
                 header_lines_by_query[current_query_name].append(current_header)
 
     f.close()
-
-    print("First read through the file: %d seconds for %d query-reference combinations" % (time.time()-before,linecounter))
     
 
     before = time.time()
     alignments_to_keep = {}
     num_queries = len(lines_by_query)
-    print("Filtering alignments of %d queries" % (num_queries))
     
     num_query_step_to_report = int(num_queries/100)
     if num_queries < 100:
@@ -86,7 +83,6 @@ def run(args):
         alignments_to_keep[query] = summarize_planesweep(lines_by_query[query], unique_length_required = unique_length,keep_small_uniques=keep_small_uniques)
 
         query_counter += 1
-    print("Deciding which alignments to keep: %d seconds for %d queries" % (time.time()-before,num_queries))
     before = time.time()
 
     fout = gzip.open(output_filename + ".Assemblytics.unique_length_filtered_l%d.delta.gz" % (unique_length),'wt')
@@ -94,11 +90,11 @@ def run(args):
     try:
         f = gzip.open(filename, 'rt')
         header1 = f.readline()
-        print("Detected gzipped delta file. Reading...")
+        # Detected gzipped delta file.
     except:
         f = open(filename, 'r')
         header1 = f.readline()
-        print("Detected uncompressed delta file. Reading...")
+        # Detected uncompressed delta file.
 
     fout.write(header1)
     fout.write(f.readline())

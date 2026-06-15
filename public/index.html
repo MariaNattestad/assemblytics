@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assemblytics - Serverless Variant Detection</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
-    <script src="js/d3.v3.min.js"></script>
-    <script src="js/light_dotplot.js"></script>
     <style>
         :root {
             --primary: #007acc;
@@ -144,13 +142,13 @@
                     <div id="log"></div>
                 </div>
 
+                <div id="summary-container" style="margin-top: 1rem; display:none;">
+                    <h3>Summary Statistics</h3>
+                    <div id="summary-stats" class="plot-grid"></div>
+                </div>
+
                 <div id="plots-container" style="margin-top: 2rem;">
                     <h3>Visualizations</h3>
-                    <div class="card" style="margin-bottom: 2rem;">
-                        <h4>Interactive Dot Plot (D3)</h4>
-                        <div id="interactive-dotplot" style="width: 100%; min-height: 600px; background: white;"></div>
-                        <div class="help-text">Use mouse wheel to zoom, drag to pan. Black lines are unique alignments, red lines are repetitive.</div>
-                    </div>
                     <div id="plots" class="plot-grid"></div>
                 </div>
                 
@@ -235,18 +233,142 @@
                     log("--- Analysis Complete ---");
                     ui.runBtn.disabled = false;
                     ui.runBtn.textContent = "🚀 Run Analysis";
-                    
-                    // Initialize Interactive Dotplot if oriented_coords is present
-                    if (results_cache.some(r => r.name.endsWith('.oriented_coords.csv'))) {
-                        try {
-                            initInteractiveDotplot('interactive-dotplot', results_cache);
-                        } catch (err) {
-                            log(`Failed to load interactive dotplot: ${err.message}`, 'error');
-                        }
-                    }
                     break;
             }
         };
+
+        function parseSummary(text) {
+            const lines = text.split('\n');
+            const summary = {
+                variants: [],
+                totals: {}
+            };
+            
+            let currentType = null;
+            let currentData = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                if (line.startsWith('Total number of all variants:')) {
+                    summary.totals.allCount = line.split(':')[1].trim();
+                } else if (line.startsWith('Total bases affected by all variants:')) {
+                    summary.totals.allBases = line.split(':')[1].trim();
+                } else if (line.startsWith('Total number of structural variants:')) {
+                    summary.totals.svCount = line.split(':')[1].trim();
+                } else if (line.startsWith('Total bases affected by structural variants:')) {
+                    summary.totals.svBases = line.split(':')[1].trim();
+                } else if (!line.includes(',') && !line.includes(':') && !line.includes('Count')) {
+                    // New variant type
+                    if (currentType) {
+                        summary.variants.push({ type: currentType, data: currentData });
+                    }
+                    currentType = line;
+                    currentData = [];
+                } else if (line.includes('bp:') || line.startsWith('Total:')) {
+                    const parts = line.split(/\s+/).filter(p => p);
+                    if (parts.length >= 3) {
+                        currentData.push({
+                            range: parts.slice(0, parts.length - 2).join(' '),
+                            count: parts[parts.length - 2],
+                            bp: parts[parts.length - 1]
+                        });
+                    }
+                }
+            }
+            if (currentType) {
+                summary.variants.push({ type: currentType, data: currentData });
+            }
+            return summary;
+        }
+
+        function renderSummary(summary) {
+            const container = document.getElementById('summary-stats');
+            container.innerHTML = '';
+            document.getElementById('summary-container').style.display = 'block';
+
+            // Identify all unique ranges across all variants
+            const ranges = new Set();
+            summary.variants.forEach(v => {
+                v.data.forEach(d => {
+                    if (d.range !== 'Total:') ranges.add(d.range);
+                });
+            });
+            const sortedRanges = Array.from(ranges); // They are already mostly sorted from the script
+
+            // Overall totals card
+            const totalCard = document.createElement('div');
+            totalCard.className = 'card';
+            totalCard.style.gridColumn = '1 / -1';
+            totalCard.style.background = '#e3f2fd';
+            totalCard.style.border = '1px solid #90caf9';
+            totalCard.style.padding = '0.75rem 1.5rem';
+            totalCard.innerHTML = `
+                <div style="display:flex; justify-content: space-around; text-align:center;">
+                    <div>
+                        <span style="font-size:0.75rem; color:#546e7a; text-transform:uppercase; letter-spacing:1px; margin-right:10px;">Total Variants:</span>
+                        <span style="font-size:1.2rem; font-weight:bold; color:#1565c0;">${summary.totals.allCount}</span>
+                    </div>
+                    <div>
+                        <span style="font-size:0.75rem; color:#546e7a; text-transform:uppercase; letter-spacing:1px; margin-right:10px;">Bases Affected:</span>
+                        <span style="font-size:1.2rem; font-weight:bold; color:#1565c0;">${summary.totals.allBases}</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(totalCard);
+
+            const tableCard = document.createElement('div');
+            tableCard.className = 'card';
+            tableCard.style.gridColumn = '1 / -1';
+            tableCard.style.overflowX = 'auto';
+            tableCard.style.padding = '0';
+
+            const variantColors = {
+                'Insertion': '#E41A1C',
+                'Deletion': '#377EB8',
+                'Repeat_expansion': '#4DAF4A',
+                'Repeat_contraction': '#984EA3',
+                'Tandem_expansion': '#FF7F00',
+                'Tandem_contraction': '#A65628'
+            };
+
+            let tableHTML = `
+                <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                    <thead>
+                        <tr style="background:#f5f5f5; color:#666; text-transform:uppercase; font-size:0.7rem;">
+                            <th style="text-align:left; padding:10px 15px; border-bottom:1px solid #eee;">Variant Type</th>
+                            ${sortedRanges.map(r => `<th style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee;">${r}</th>`).join('')}
+                            <th style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee; background:#eee;">Total Count</th>
+                            <th style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee; background:#eee;">Total bp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            summary.variants.forEach(variant => {
+                const color = variantColors[variant.type] || '#999';
+                const totalRow = variant.data.find(d => d.range === 'Total:') || { count: '0', bp: '0' };
+                
+                tableHTML += `
+                    <tr>
+                        <td style="padding:10px 15px; border-bottom:1px solid #eee; border-left: 5px solid ${color}; font-weight:bold;">
+                            ${variant.type.replace('_', ' ')}
+                        </td>
+                        ${sortedRanges.map(r => {
+                            const d = variant.data.find(vd => vd.range === r);
+                            return `<td style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee;">${d ? d.count : '0'}</td>`;
+                        }).join('')}
+                        <td style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee; background:#fafafa; font-weight:bold;">${totalRow.count}</td>
+                        <td style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee; background:#fafafa; color:#666;">${totalRow.bp} bp</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `</tbody></table>`;
+            tableCard.innerHTML = tableHTML;
+            container.appendChild(tableCard);
+        }
 
         // Initialize worker
         worker.postMessage({ type: 'init' });
@@ -339,6 +461,11 @@
                 card.className = 'card plot-card';
                 card.innerHTML = `<h4>📊 ${name}</h4><img src="${url}">`;
                 ui.plots.appendChild(card);
+            } else if (name.endsWith('.Assemblytics_structural_variants.summary')) {
+                const decoder = new TextDecoder();
+                const text = decoder.decode(data);
+                const summary = parseSummary(text);
+                renderSummary(summary);
             } else {
                 const blob = new Blob([data], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
