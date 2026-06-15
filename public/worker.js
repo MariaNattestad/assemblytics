@@ -42,15 +42,26 @@ self.onmessage = async (e) => {
             pyodide.setStderr({ batched: (str) => self.postMessage({ type: 'log', message: str, stream: 'error' }) });
 
             await pyodide.runPythonAsync(`
-import argparse
 import sys
 import os
+import argparse
 
-# Ensure the current directory is in the path so we can import Assemblytics
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
+# Force the current directory into sys.path
+current_dir = os.getcwd()
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
-from Assemblytics import run
+print(f"Python path: {sys.path}")
+print(f"Files in current directory: {os.listdir(current_dir)}")
+
+try:
+    from Assemblytics import run
+    print("Successfully imported Assemblytics")
+except ImportError as e:
+    print(f"Failed to import Assemblytics: {e}")
+    # Try absolute path import as fallback if needed, but the path insert should work
+    raise
+
 args = argparse.Namespace(
     delta="input.delta.gz",
     output_prefix="output",

@@ -237,10 +237,19 @@
             'Assemblytics_dotplot.py', 'Assemblytics_Nchart.py', 'Assemblytics.py'
         ];
 
+        let mountedCount = 0;
         scripts.forEach(async (script) => {
-            const response = await fetch(`../scripts/${script}`);
-            const content = await response.text();
-            worker.postMessage({ type: 'mount', name: script, content: content });
+            try {
+                const response = await fetch(`../scripts/${script}`);
+                const content = await response.text();
+                worker.postMessage({ type: 'mount', name: script, content: content });
+                mountedCount++;
+                if (mountedCount === scripts.length) {
+                    console.log("All scripts sent to worker for mounting");
+                }
+            } catch (err) {
+                log(`Failed to fetch ${script}: ${err.message}`, 'error');
+            }
         });
 
         // File handling
