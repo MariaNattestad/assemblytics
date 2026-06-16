@@ -178,7 +178,7 @@ def natural_key(string_):
 
 def main():
     parser=argparse.ArgumentParser(description="Index and orient a coordinate file for dotplots.")
-    parser.add_argument("-coords",help="coords.csv file from Assemblytics_uniq_anchor.py" ,dest="coords", type=str, required=True)
+    parser.add_argument("-coords",help="coords.csv file from uniq_anchor.py" ,dest="coords", type=str, required=True)
     parser.add_argument("-out",help="output directory for assemblytics_* index and oriented coordinates files (default: current directory)" ,dest="out", type=str, default=".")
     parser.set_defaults(func=run)
     args=parser.parse_args()

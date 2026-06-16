@@ -30,11 +30,8 @@ Important: Use only contigs rather than scaffolds from the assembly. This will p
 The unique sequence length required represents an anchor for determining if a sequence is unique enough to safely call variants from, which is an alternative to the mapping quality filter for read alignment.
 
 ## Dependencies
-- Python 3
-    - argparse
-    - numpy
-    - pandas
-    - matplotlib
+- Python 3.8+ with `numpy`, `pandas`, and `matplotlib` (installed automatically by `pip install -e .`, see Installation below)
+- [MUMmer 3](https://sourceforge.net/projects/mummer/files/) to generate the input delta file (see Input instructions above)
 
 ## How Assemblytics works
 
@@ -59,21 +56,27 @@ See this example showing the point of unique anchor filtering (from the bioRxiv 
 <b>Supplementary Figure 1 caption:</b> Each repetitive element in a genome assembly can map ambiguously to multiple locations in the reference genome. Delta-filter, a component of MUMmer, filters repetitive alignments using a longest-increasing subsequence (LIS) dynamic programming algorithm to select subsets of long, high-identity alignments while penalizing overlaps (Kurtz et al., 2004; Phillippy et al., 2008). In contrast, Assemblytics eliminates repeats lacking substantial unique anchoring sequence (default: 10 kb). <b>A</b>. Example: a simulated 20 kb contig sequence matches three locations in the reference except for a single nucleotide (red point) providing a better match on the right. <b>B</b>. Dot plot of all raw, unfiltered alignments from nucmer. <b>C</b>. Dot plot after <code>delta-filter -r</code> (equivalent to unfiltered). <b>D</b>. Dot plot after <code>delta-filter -q</code>; here, a single nucleotide is enough for <code>-q</code> to prefer the third alignment. <b>E</b>. Dot plot after Assemblytics unique anchor filtering: only alignments with at least 10 kb uniquely anchored sequence (aligning to a single position in the reference) are retained; the repeats are removed. Assemblytics annotates structural variants within such filtered gaps as repeat expansions or contractions, depending on whether the gap is larger in the query or reference, respectively. No variant is reported unless the gap size changes, so repeats themselves are not reported as SVs—only expansions (increased size) or contractions (decreased size) are.
 </sub>
 
-## Command-line instructions
-
-To run Assemblytics from the command-line, use the `scripts/Assemblytics.py` script. It orchestrates the entire pipeline from filtering to plotting.
-
-All dependencies (Python 3 with `numpy`, `pandas`, and `matplotlib`) must be installed on your system.
-
-To run Assemblytics:
+## Installation
 
 ```bash
-scripts/Assemblytics.py -d <delta_file> -o <output_dir>
+pip install -e .
+```
+
+This installs the `assemblytics` package (the orchestrator and all of its pipeline stages live in `assemblytics/`) along with an `assemblytics` console command. A versioned release on PyPI and an updated bioconda recipe are in progress (see `packaging/bioconda/meta.yaml` for a draft).
+
+If you'd rather not install anything, you can run the pipeline directly from a clone with `python -m assemblytics.cli` instead of `assemblytics` in any command below.
+
+## Command-line instructions
+
+The `assemblytics` command orchestrates the entire pipeline from filtering to plotting.
+
+```bash
+assemblytics -d <delta_file> -o <output_dir>
 ```
 
 Example using the provided *E. coli* sample:
 ```bash
-scripts/Assemblytics.py -d input_examples/ecoli.delta.gz -o ecoli_output
+assemblytics -d input_examples/ecoli.delta.gz -o ecoli_output
 
 # The output should match the one in the output_examples/ecoli folder.
 
@@ -88,35 +91,37 @@ To re-run the pipeline on each input and diff its variant calls against the matc
 
 ```bash
 # E. coli (uses a smaller unique anchor length since it's a small genome)
-scripts/Assemblytics.py -d input_examples/ecoli.delta.gz -o /tmp/assemblytics_test/ecoli -l 1000
+assemblytics -d input_examples/ecoli.delta.gz -o /tmp/assemblytics_test/ecoli -l 1000
 diff <(tail -n +2 /tmp/assemblytics_test/ecoli/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/ecoli/E__coli_example.Assemblytics_structural_variants.bed | sort) \
      && echo "ecoli: OK"
 
 # Yeast (Saccharomyces cerevisiae)
-scripts/Assemblytics.py -d input_examples/yeast.delta.gz -o /tmp/assemblytics_test/yeast
+assemblytics -d input_examples/yeast.delta.gz -o /tmp/assemblytics_test/yeast
 diff <(tail -n +2 /tmp/assemblytics_test/yeast/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/yeast/Saccharomyces_cerevisiae_example.Assemblytics_structural_variants.bed | sort) \
      && echo "yeast: OK"
 
 # Arabidopsis thaliana
-scripts/Assemblytics.py -d input_examples/arabidopsis.delta.gz -o /tmp/assemblytics_test/arabidopsis
+assemblytics -d input_examples/arabidopsis.delta.gz -o /tmp/assemblytics_test/arabidopsis
 diff <(tail -n +2 /tmp/assemblytics_test/arabidopsis/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/arabidopsis/Arabidopsis_example.Assemblytics_structural_variants.bed | sort) \
      && echo "arabidopsis: OK"
 
 # Drosophila melanogaster
-scripts/Assemblytics.py -d input_examples/drosophila.delta.gz -o /tmp/assemblytics_test/drosophila
+assemblytics -d input_examples/drosophila.delta.gz -o /tmp/assemblytics_test/drosophila
 diff <(tail -n +2 /tmp/assemblytics_test/drosophila/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/drosophila/Drosophila_example.Assemblytics_structural_variants.bed | sort) \
      && echo "drosophila: OK"
 
 # Human (assembly aligned to hg19) -- the largest input, this one takes the longest to run
-scripts/Assemblytics.py -d input_examples/human.delta.gz -o /tmp/assemblytics_test/human
+assemblytics -d input_examples/human.delta.gz -o /tmp/assemblytics_test/human
 diff <(tail -n +2 /tmp/assemblytics_test/human/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/human/Human_NA12878_to_hg19.Assemblytics_structural_variants.bed | sort) \
      && echo "human: OK"
 ```
+
+(No `pip install -e .` yet? Replace `assemblytics` with `python -m assemblytics.cli` in each command above.)
 
 Each `diff` should print nothing (no differences) followed by the "OK" line. The `tail -n +2` skips the header line, and `sort` makes the comparison order-independent since variant IDs can legitimately be assigned in a different order between runs.
 

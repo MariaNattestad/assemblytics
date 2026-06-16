@@ -18,24 +18,24 @@ if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
         `);
 
-        // Fetch and mount scripts directly in the worker
-        const scripts = [
-            'Assemblytics_uniq_anchor.py', 'Assemblytics_between_alignments.py',
-            'Assemblytics_within_alignment.py', 'Assemblytics_index.py',
-            'Assemblytics_summary.py', 'Assemblytics_variant_charts.py',
-            'Assemblytics_dotplot.py', 'Assemblytics_Nchart.py', 'Assemblytics.py'
+        // Fetch and mount the assemblytics package directly in the worker
+        const packageFiles = [
+            '__init__.py', 'uniq_anchor.py', 'between_alignments.py',
+            'within_alignment.py', 'index.py', 'summary.py',
+            'variant_charts.py', 'dotplot.py', 'nchart.py', 'cli.py'
         ];
 
-        for (const script of scripts) {
-            const response = await fetch(`../scripts/${script}`);
+        pyodide.FS.mkdir('assemblytics');
+        for (const file of packageFiles) {
+            const response = await fetch(`../assemblytics/${file}`);
             const content = await response.text();
-            pyodide.FS.writeFile(script, content);
+            pyodide.FS.writeFile(`assemblytics/${file}`, content);
         }
 
         self.postMessage({ type: 'status', message: 'Environment Ready' });
         resolveReady();
     } catch (err) {
-        self.postMessage({ type: 'error', message: 'Initialization failed: ' + err.message });
+        self.postMessage({ type: 'error', message: 'Initialization failed: ' + (err && (err.message || err.toString())) });
     }
 }
 
@@ -69,7 +69,7 @@ self.onmessage = async (e) => {
             await pyodide.runPythonAsync(`
 import argparse
 import os
-from Assemblytics import run
+from assemblytics.cli import run
 
 print(f"Working directory: {os.getcwd()}")
 print(f"Files: {os.listdir('.')}")

@@ -195,7 +195,7 @@ def run(output_dir, abs_min_var, abs_max_var):
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print("Usage: Assemblytics_variant_charts.py output_dir abs_min_var abs_max_var")
+        print("Usage: variant_charts.py output_dir abs_min_var abs_max_var")
         sys.exit(1)
 
     output_dir = sys.argv[1]

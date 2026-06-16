@@ -13,7 +13,7 @@ OUTPUT_FILE_CHOICES = ("bed", "bedpe")
 
 USAGE = (
     "Usage:\n"
-    "Assemblytics_between_alignments.py coords.tab minimum_event_size maximum_event_size "
+    "between_alignments.py coords.tab minimum_event_size maximum_event_size "
     "[{0}] [{1}] [{2}]".format(
         "|".join(CHROMOSOME_FILTER_CHOICES),
         "|".join(LONGRANGE_FILTER_CHOICES),

@@ -8,21 +8,17 @@ import os
 import sys
 import zipfile
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-if SCRIPT_DIR not in sys.path:
-    sys.path.insert(0, SCRIPT_DIR)
-
-from Assemblytics_between_alignments import run as run_between_alignments
-from Assemblytics_dotplot import run as run_dotplot
-from Assemblytics_index import run as run_index
-from Assemblytics_Nchart import run as run_nchart
-from Assemblytics_summary import SVtable as run_summary
-from Assemblytics_uniq_anchor import run as run_uniq_anchor
-from Assemblytics_variant_charts import run as run_variant_charts
-from Assemblytics_within_alignment import run as run_within_alignment
+from .between_alignments import run as run_between_alignments
+from .dotplot import run as run_dotplot
+from .index import run as run_index
+from .nchart import run as run_nchart
+from .summary import SVtable as run_summary
+from .uniq_anchor import run as run_uniq_anchor
+from .variant_charts import run as run_variant_charts
+from .within_alignment import run as run_within_alignment
 
 
-USAGE = "assemblytics.py -d delta -o output_dir -l unique_length -min min_size -max max_size"
+USAGE = "assemblytics -d delta -o output_dir -l unique_length -min min_size -max max_size"
 
 STRUCTURAL_VARIANTS_HEADER = (
     "#reference\tref_start\tref_stop\tID\tsize\tstrand\ttype\t"
@@ -50,28 +46,6 @@ def combine_variants(output_dir):
                 with open(path) as variants:
                     combined.write(variants.read())
     return combined_path
-
-
-def write_coords_genome_files(output_dir):
-    coords_tab = os.path.join(output_dir, "assemblytics_coords.tab")
-    ref_genome = os.path.join(output_dir, "assemblytics_ref.genome")
-    query_genome = os.path.join(output_dir, "assemblytics_query.genome")
-
-    ref_entries = {}
-    query_entries = {}
-    with open(coords_tab) as coords:
-        for line in coords:
-            fields = line.split()
-            ref_entries[fields[6]] = int(fields[4])
-            query_entries[fields[7]] = int(fields[5])
-
-    with open(ref_genome, "w") as ref_out:
-        for name, length in sorted(ref_entries.items(), key=lambda item: item[1], reverse=True):
-            ref_out.write("%s\t%d\n" % (name, length))
-
-    with open(query_genome, "w") as query_out:
-        for name, length in sorted(query_entries.items(), key=lambda item: item[1], reverse=True):
-            query_out.write("%s\t%d\n" % (name, length))
 
 
 def format_column_table(lines):
@@ -170,14 +144,14 @@ def run(args):
     if not os.path.exists(filtered_delta):
         fail(
             log_file,
-            "UNIQFILTER,FAIL,Step 1: Assemblytics_uniq_anchor.py failed: "
+            "UNIQFILTER,FAIL,Step 1: uniq_anchor.py failed: "
             "Possible problem with Python or Python packages on server.",
         )
     print("FILE_READY:" + os.path.basename(filtered_delta))
 
     log_progress(
         log_file,
-        "UNIQFILTER,DONE,Step 1: Assemblytics_uniq_anchor.py completed successfully. "
+        "UNIQFILTER,DONE,Step 1: uniq_anchor.py completed successfully. "
         "Now finding variants between alignments.",
     )
 
@@ -197,14 +171,14 @@ def run(args):
     if not os.path.exists(between_path):
         fail(
             log_file,
-            "BETWEEN,FAIL,Step 2: Assemblytics_between_alignments.py failed: "
+            "BETWEEN,FAIL,Step 2: between_alignments.py failed: "
             "Possible problem with Python on server.",
         )
     print("FILE_READY:" + os.path.basename(between_path))
 
     log_progress(
         log_file,
-        "BETWEEN,DONE,Step 2: Assemblytics_between_alignments.py completed successfully. "
+        "BETWEEN,DONE,Step 2: between_alignments.py completed successfully. "
         "Now finding variants within alignments.",
     )
 
@@ -220,14 +194,14 @@ def run(args):
     if not os.path.exists(within_path):
         fail(
             log_file,
-            "WITHIN,FAIL,Step 3: Assemblytics_within_alignment.py failed: "
+            "WITHIN,FAIL,Step 3: within_alignment.py failed: "
             "Possible problem before this step or with Python on server.",
         )
     print("FILE_READY:" + os.path.basename(within_path))
 
     log_progress(
         log_file,
-        "WITHIN,DONE,Step 3: Assemblytics_within_alignment.py completed successfully. "
+        "WITHIN,DONE,Step 3: within_alignment.py completed successfully. "
         "Now combining the two sets of variants together.",
     )
 
@@ -250,7 +224,6 @@ def run(args):
             out=output_dir,
         )
     )
-    write_coords_genome_files(output_dir)
     run_summary_to_file(output_dir, minimum_size, maximum_size)
     write_variant_preview(output_dir)
     print("FILE_READY:assemblytics_structural_variants_summary.txt")
@@ -275,11 +248,11 @@ def run(args):
     summary_path = os.path.join(output_dir, "assemblytics_structural_variants_summary.txt")
     with open(summary_path) as summary:
         if "Total" not in summary.read():
-            fail(log_file, "SUMMARY,FAIL,Step 5: Assemblytics_summary.py failed")
+            fail(log_file, "SUMMARY,FAIL,Step 5: summary.py failed")
 
     log_progress(
         log_file,
-        "SUMMARY,DONE,Step 5: Assemblytics_summary.py completed successfully",
+        "SUMMARY,DONE,Step 5: summary.py completed successfully",
     )
 
 

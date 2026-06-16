@@ -19,29 +19,21 @@ def bp_format(num):
         return "{:,} bp".format(int(num))
 
 def run(output_dir):
-    # Instead of reading .coords.ref.genome and .coords.query.genome,
-    # we'll read .coords.tab and generate the data ourselves.
-    coords_tab = os.path.join(output_dir, "assemblytics_coords.tab")
-    if not os.path.exists(coords_tab):
-        print(f"File {coords_tab} not found.")
+    ref_genome = os.path.join(output_dir, "assemblytics_ref.genome")
+    query_genome = os.path.join(output_dir, "assemblytics_query.genome")
+    if not os.path.exists(ref_genome) or not os.path.exists(query_genome):
+        print(f"File {ref_genome} or {query_genome} not found.")
         return
 
     try:
-        # Columns in coords.tab: ref_start, ref_end, query_start, query_end, ref_length, query_length, ref, query
-        df = pd.read_csv(coords_tab, sep="\t", header=None, 
-                         names=["ref_start", "ref_end", "query_start", "query_end", 
-                                "ref_full_length", "query_full_length", "ref", "query"])
+        ref_data = pd.read_csv(ref_genome, sep="\t", header=None, names=["name", "length"])
+        query_data = pd.read_csv(query_genome, sep="\t", header=None, names=["name", "length"])
     except Exception as e:
-        print(f"Error reading {coords_tab}: {e}")
+        print(f"Error reading {ref_genome} or {query_genome}: {e}")
         return
 
-    # Extract unique reference sequences and their lengths
-    ref_data = df[["ref", "ref_full_length"]].drop_duplicates().sort_values("ref_full_length", ascending=False)
-    ref_data.columns = ["name", "length"]
-    
-    # Extract unique query sequences and their lengths
-    query_data = df[["query", "query_full_length"]].drop_duplicates().sort_values("query_full_length", ascending=False)
-    query_data.columns = ["name", "length"]
+    ref_data = ref_data.sort_values("length", ascending=False)
+    query_data = query_data.sort_values("length", ascending=False)
 
     genome_length = max(ref_data["length"].sum(), query_data["length"].sum())
 
@@ -98,6 +90,6 @@ def run(output_dir):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: Assemblytics_Nchart.py output_dir")
+        print("Usage: nchart.py output_dir")
         sys.exit(1)
     run(sys.argv[1])

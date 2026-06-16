@@ -123,6 +123,11 @@ def run(args):
     ref_lengths = []
     query_lengths = []
 
+    # For genome length files (only sequences with at least one unique alignment,
+    # matching what ends up in coords.tab)
+    unique_ref_entries = {}
+    unique_query_entries = {}
+
     f_stats_out = open(os.path.join(output_dir, "assemblytics_assembly_stats.txt"),"w")
 
     for line in f:
@@ -169,6 +174,8 @@ def run(args):
                 if alignment_counter[query] in list_of_alignments_to_keep:
                     fout.write(line)
                     fcoords_out_tab.write("\t".join(map(str,[ref_start,ref_end,query_start, query_end,current_reference_size,current_query_size,current_reference_name,current_query_name])) + "\n")
+                    unique_ref_entries[current_reference_name] = current_reference_size
+                    unique_query_entries[current_query_name] = current_query_size
                     csv_tag = "unique"
                     keep_printing = True
                 else:
@@ -181,6 +188,14 @@ def run(args):
 
     fcoords_out_tab.close()
     fcoords_out_csv.close()
+
+    with open(os.path.join(output_dir, "assemblytics_ref.genome"), "w") as ref_genome_out:
+        for name, length in sorted(unique_ref_entries.items(), key=lambda item: item[1], reverse=True):
+            ref_genome_out.write("%s\t%d\n" % (name, length))
+
+    with open(os.path.join(output_dir, "assemblytics_query.genome"), "w") as query_genome_out:
+        for name, length in sorted(unique_query_entries.items(), key=lambda item: item[1], reverse=True):
+            query_genome_out.write("%s\t%d\n" % (name, length))
 
     print("Reading file and recording all the entries we decided to keep: %d seconds for %d total lines in file" % (time.time()-before,linecounter))
 
