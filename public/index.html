@@ -435,10 +435,10 @@
             ui.useSampleBtn.textContent = "Loading Drosophila...";
             log("Fetching Drosophila sample...");
             try {
-                const response = await fetch('../input_examples/Drosophila_melanogaster.delta.gz');
+                const response = await fetch('../input_examples/drosophila.delta.gz');
                 const buffer = await response.arrayBuffer();
                 selectedFileData = new Uint8Array(buffer);
-                selectedFileName = "Drosophila_melanogaster.delta.gz";
+                selectedFileName = "drosophila.delta.gz";
                 ui.filename.textContent = selectedFileName;
                 ui.fileInfo.style.display = 'block';
                 ui.fileReadyMsg.style.display = 'block';

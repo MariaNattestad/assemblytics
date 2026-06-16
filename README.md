@@ -73,7 +73,7 @@ scripts/Assemblytics.py -d <delta_file> -o <output_dir>
 
 Example using the provided *E. coli* sample:
 ```bash
-scripts/Assemblytics.py -d input_examples/Ecoli.delta.gz -o ecoli_output
+scripts/Assemblytics.py -d input_examples/ecoli.delta.gz -o ecoli_output
 
 # The output should match the one in the output_examples/ecoli folder.
 
@@ -88,31 +88,31 @@ To re-run the pipeline on each input and diff its variant calls against the matc
 
 ```bash
 # E. coli (uses a smaller unique anchor length since it's a small genome)
-scripts/Assemblytics.py -d input_examples/Ecoli.delta.gz -o /tmp/assemblytics_test/ecoli -l 1000
+scripts/Assemblytics.py -d input_examples/ecoli.delta.gz -o /tmp/assemblytics_test/ecoli -l 1000
 diff <(tail -n +2 /tmp/assemblytics_test/ecoli/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/ecoli/E__coli_example.Assemblytics_structural_variants.bed | sort) \
      && echo "ecoli: OK"
 
 # Yeast (Saccharomyces cerevisiae)
-scripts/Assemblytics.py -d input_examples/Saccharomyces_cerevisiae.delta.gz -o /tmp/assemblytics_test/yeast
+scripts/Assemblytics.py -d input_examples/yeast.delta.gz -o /tmp/assemblytics_test/yeast
 diff <(tail -n +2 /tmp/assemblytics_test/yeast/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/yeast/Saccharomyces_cerevisiae_example.Assemblytics_structural_variants.bed | sort) \
      && echo "yeast: OK"
 
 # Arabidopsis thaliana
-scripts/Assemblytics.py -d input_examples/Arabidopsis_thaliana.delta.gz -o /tmp/assemblytics_test/arabidopsis
+scripts/Assemblytics.py -d input_examples/arabidopsis.delta.gz -o /tmp/assemblytics_test/arabidopsis
 diff <(tail -n +2 /tmp/assemblytics_test/arabidopsis/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/arabidopsis/Arabidopsis_example.Assemblytics_structural_variants.bed | sort) \
      && echo "arabidopsis: OK"
 
 # Drosophila melanogaster
-scripts/Assemblytics.py -d input_examples/Drosophila_melanogaster.delta.gz -o /tmp/assemblytics_test/drosophila
+scripts/Assemblytics.py -d input_examples/drosophila.delta.gz -o /tmp/assemblytics_test/drosophila
 diff <(tail -n +2 /tmp/assemblytics_test/drosophila/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/drosophila/Drosophila_example.Assemblytics_structural_variants.bed | sort) \
      && echo "drosophila: OK"
 
 # Human (assembly aligned to hg19) -- the largest input, this one takes the longest to run
-scripts/Assemblytics.py -d input_examples/Homo_sapiens.l10000.delta.gz -o /tmp/assemblytics_test/human
+scripts/Assemblytics.py -d input_examples/human.delta.gz -o /tmp/assemblytics_test/human
 diff <(tail -n +2 /tmp/assemblytics_test/human/assemblytics_structural_variants.bed | sort) \
      <(tail -n +2 output_examples/human/Human_NA12878_to_hg19.Assemblytics_structural_variants.bed | sort) \
      && echo "human: OK"
