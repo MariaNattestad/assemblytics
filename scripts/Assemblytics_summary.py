@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import numpy as np
 
 def SVtable(args):
@@ -37,7 +38,7 @@ def SVtable(args):
 
     sizeArray = np.array(sizeList)
     typeArray = np.array(typeList)
-    svTypes = ["Insertion","Deletion","Tandem_expansion","Tandem_contraction","Repeat_expansion","Repeat_contraction"]
+    svTypes = ["Insertion","Deletion","Repeat_expansion","Repeat_contraction","Tandem_expansion","Tandem_contraction"]
     if simplify_types == True:
         svTypes = ["Insertion/Expansion","Deletion/Contraction"]
     overall_total = 0
@@ -49,7 +50,8 @@ def SVtable(args):
 
     all_SV_types = svTypes + list(set(rawTypes)-set(svTypes))
 
-    f_output_csv = open(filename[0:-4]+".summary.csv",'w')
+    base, _ = os.path.splitext(filename)
+    f_output_csv = open(base + "_summary.csv",'w')
 
     if linecounter > 0:
         for svType in all_SV_types:

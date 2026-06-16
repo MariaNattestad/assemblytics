@@ -76,7 +76,7 @@ print(f"Files: {os.listdir('.')}")
 
 args = argparse.Namespace(
     delta="input.delta.gz",
-    output_prefix="output",
+    output_dir=".",
     unique_length=${data.params.unique_length},
     minimum_size=${data.params.min_size},
     maximum_size=${data.params.max_size}
@@ -88,7 +88,7 @@ run(args)
             const files = pyodide.FS.readdir('.');
             const results = [];
             for (const file of files) {
-                if (file.startsWith('output')) {
+                if (file.startsWith('assemblytics_')) {
                     const content = pyodide.FS.readFile(file);
                     results.push({ name: file, data: content });
                 }

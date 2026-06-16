@@ -76,6 +76,32 @@
             background: #e1f5fe; color: #01579b; padding: 2px 8px; border-radius: 12px;
             font-size: 0.75rem; font-weight: bold; margin-left: 5px;
         }
+
+        #sample-banner {
+            background: #eef7ff; border: 1px solid #b8e0ff; border-radius: 6px;
+            padding: 0.6rem 1rem; font-size: 0.85rem; color: #1565c0; margin-bottom: 1rem;
+        }
+        #sample-banner b { color: #0d3d6b; }
+
+        #zip-download {
+            background: #e8f5e9; border: 2px solid #43a047; border-radius: 8px;
+            padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1rem;
+        }
+        #zip-download .zip-label { font-size: 0.9rem; color: #2e7d32; }
+        #zip-download .zip-label strong { display: block; font-size: 1rem; margin-bottom: 0.2rem; }
+        #zip-download a.zip-button {
+            background: #2e7d32; color: white; text-decoration: none; padding: 0.6rem 1.2rem;
+            border-radius: 4px; font-weight: bold; font-size: 0.9rem;
+        }
+
+        .plot-card { position: relative; }
+        .plot-card .download-icon {
+            position: absolute; top: 0.75rem; right: 0.75rem; background: rgba(255,255,255,0.9);
+            border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center;
+            justify-content: center; text-decoration: none; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -137,6 +163,8 @@
 
         <div id="content">
             <div id="results-area" style="display:none;">
+                <div id="sample-banner" style="display:none;"></div>
+
                 <div class="card">
                     <h3>Analysis Progress</h3>
                     <div id="log"></div>
@@ -154,6 +182,7 @@
                 
                 <div id="downloads-container" style="margin-top: 2rem;">
                     <h3>Files</h3>
+                    <div id="zip-download" style="display:none;"></div>
                     <div id="file-list" style="display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
                 </div>
             </div>
@@ -193,6 +222,8 @@
             resultsArea: document.getElementById('results-area'),
             introArea: document.getElementById('intro-area'),
             fileList: document.getElementById('file-list'),
+            zipDownload: document.getElementById('zip-download'),
+            sampleBanner: document.getElementById('sample-banner'),
             useSampleBtn: document.getElementById('useSampleBtn')
         };
 
@@ -434,6 +465,10 @@
             ui.resultsArea.style.display = 'block';
             ui.plots.innerHTML = '';
             ui.fileList.innerHTML = '';
+            ui.zipDownload.innerHTML = '';
+            ui.zipDownload.style.display = 'none';
+            ui.sampleBanner.innerHTML = '';
+            ui.sampleBanner.style.display = 'none';
             ui.log.innerHTML = '';
             results_cache.length = 0;
 
@@ -452,24 +487,60 @@
             });
         };
 
+        function parseAssemblyStats(text) {
+            const refMatch = text.match(/^Reference:\s*(.+)$/m);
+            const queryMatch = text.match(/^Query:\s*(.+)$/m);
+            return {
+                reference: refMatch ? refMatch[1].trim() : null,
+                query: queryMatch ? queryMatch[1].trim() : null
+            };
+        }
+
+        function renderSampleBanner(stats) {
+            if (!stats.reference && !stats.query) return;
+            ui.sampleBanner.innerHTML =
+                `🧬 <b>Reference:</b> ${stats.reference || 'unknown'} &nbsp;&nbsp; <b>Query:</b> ${stats.query || 'unknown'}`;
+            ui.sampleBanner.style.display = 'block';
+        }
+
+        function renderZipDownload(name, url) {
+            ui.zipDownload.innerHTML = `
+                <div class="zip-label">
+                    <strong>📦 All results (recommended)</strong>
+                    Includes every file below in one download.
+                </div>
+                <a class="zip-button" href="${url}" download="${name}">Download ${name}</a>
+            `;
+            ui.zipDownload.style.display = 'flex';
+        }
+
         function displayResult(name, data) {
             if (name.endsWith('.png')) {
                 const blob = new Blob([data], { type: 'image/png' });
                 const url = URL.createObjectURL(blob);
-                
+
                 const card = document.createElement('div');
                 card.className = 'card plot-card';
-                card.innerHTML = `<h4>📊 ${name}</h4><img src="${url}">`;
+                card.innerHTML = `<h4>📊 ${name}</h4><img src="${url}"><a class="download-icon" href="${url}" download="${name}" title="Download ${name}">💾</a>`;
                 ui.plots.appendChild(card);
-            } else if (name.endsWith('.Assemblytics_structural_variants.summary')) {
+            } else if (name === 'assemblytics_structural_variants_summary.txt') {
                 const decoder = new TextDecoder();
                 const text = decoder.decode(data);
                 const summary = parseSummary(text);
                 renderSummary(summary);
+            } else if (name === 'assemblytics_results.zip') {
+                const blob = new Blob([data], { type: 'application/zip' });
+                const url = URL.createObjectURL(blob);
+                renderZipDownload(name, url);
             } else {
                 const blob = new Blob([data], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
-                
+
+                if (name === 'assemblytics_assembly_stats.txt') {
+                    const decoder = new TextDecoder();
+                    renderSampleBanner(parseAssemblyStats(decoder.decode(data)));
+                }
+
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = name;

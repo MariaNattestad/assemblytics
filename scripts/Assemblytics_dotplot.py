@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-def run(prefix):
-    filename = prefix + ".oriented_coords.csv"
-    plot_output_filename = prefix + ".Assemblytics.Dotplot_filtered"
+def run(output_dir):
+    filename = os.path.join(output_dir, "assemblytics_oriented_coords.csv")
+    plot_output_filename = os.path.join(output_dir, "assemblytics_dotplot_filtered")
     plot_title = "Dot plot of Assemblytics filtered alignments"
 
     if not os.path.exists(filename):
@@ -111,6 +111,6 @@ def run(prefix):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: Assemblytics_dotplot.py prefix")
+        print("Usage: Assemblytics_dotplot.py output_dir")
         sys.exit(1)
     run(sys.argv[1])

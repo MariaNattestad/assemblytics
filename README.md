@@ -68,14 +68,14 @@ All dependencies (Python 3 with `numpy`, `pandas`, and `matplotlib`) must be ins
 To run Assemblytics:
 
 ```bash
-scripts/Assemblytics.py -d <delta_file> -o <output_prefix>
+scripts/Assemblytics.py -d <delta_file> -o <output_dir>
 ```
 
 Example using the provided *E. coli* sample:
 ```bash
 scripts/Assemblytics.py -d input_examples/Ecoli.delta.gz -o ecoli_output
 
-# The output should match the one in the public/user_data/ecoli folder.
+# The output should match the one in the output_examples/ecoli folder.
 
 # Defaults are unique_length=10000, minimum_size=50, maximum_size=10000. For small genomes (e.g. bacteria), you may want to reduce the unique_length to 1000.
 ```

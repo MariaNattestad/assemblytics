@@ -13,8 +13,8 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 def comma_format(num):
     return "{:,}".format(int(abs(num)))
 
-def run(output_prefix, abs_min_var, abs_max_var):
-    filename = output_prefix + ".Assemblytics_structural_variants.bed"
+def run(output_dir, abs_min_var, abs_max_var):
+    filename = os.path.join(output_dir, "assemblytics_structural_variants.bed")
     if not os.path.exists(filename):
         print(f"File {filename} not found.")
         return
@@ -86,8 +86,6 @@ def run(output_prefix, abs_min_var, abs_max_var):
     var_size_cutoffs = sorted(list(set([abs_min_var, 10, 50, 500, abs_max_var])))
     var_size_cutoffs = [x for x in var_size_cutoffs if x >= abs_min_var and x <= abs_max_var]
 
-    var_type_filename = "all_variants"
-
     for i in range(len(var_size_cutoffs) - 1):
         min_var = var_size_cutoffs[i]
         max_var = var_size_cutoffs[i+1]
@@ -130,7 +128,7 @@ def run(output_prefix, abs_min_var, abs_max_var):
                 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
                 
                 for fmt in ['png', 'pdf']:
-                    plt.savefig(f"{output_prefix}.Assemblytics.size_distributions.{var_type_filename}.{min_var}-{max_var}.{fmt}", dpi=200)
+                    plt.savefig(os.path.join(output_dir, f"assemblytics_size_distributions_{min_var}-{max_var}.{fmt}"), dpi=200)
                 plt.close()
             else:
                 print(f"No variants in plot: min_var={min_var}, max_var={max_var}")
@@ -192,15 +190,15 @@ def run(output_prefix, abs_min_var, abs_max_var):
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     
     for fmt in ['png', 'pdf']:
-        plt.savefig(f"{output_prefix}.Assemblytics.size_distributions.{var_type_filename}.log_all_sizes.{fmt}", dpi=200)
+        plt.savefig(os.path.join(output_dir, f"assemblytics_size_distributions_log.{fmt}"), dpi=200)
     plt.close()
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print("Usage: Assemblytics_variant_charts.py output_prefix abs_min_var abs_max_var")
+        print("Usage: Assemblytics_variant_charts.py output_dir abs_min_var abs_max_var")
         sys.exit(1)
-    
-    output_prefix = sys.argv[1]
+
+    output_dir = sys.argv[1]
     abs_min_var = int(sys.argv[2])
     abs_max_var = int(sys.argv[3])
-    run(output_prefix, abs_min_var, abs_max_var)
+    run(output_dir, abs_min_var, abs_max_var)

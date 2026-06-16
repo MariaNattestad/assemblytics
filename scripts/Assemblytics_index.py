@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import numpy as np
 import re
 
@@ -8,8 +9,10 @@ import re
 def run(args):
 
     coords = args.coords
-    output_prefix = args.out
-    
+    output_dir = args.out
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
     f = open(coords)
     f.readline() # ignore header
 
@@ -98,7 +101,7 @@ def run(args):
 
     relative_ref_position_by_query.sort(key=lambda x: x[1])
 
-    fout_ref_index = open(output_prefix + ".ref.index",'w')
+    fout_ref_index = open(os.path.join(output_dir, "assemblytics_ref_index.csv"),'w')
     fout_ref_index.write("ref,ref_length,matching_queries\n")
 
     # reference_lengths is sorted by the reference chromosome name
@@ -106,7 +109,7 @@ def run(args):
         fout_ref_index.write("%s,%d,%s\n" % (ref,ref_length,"~".join(queries_by_reference[ref])))
     fout_ref_index.close()
 
-    fout_query_index = open(output_prefix + ".query.index",'w')
+    fout_query_index = open(os.path.join(output_dir, "assemblytics_query_index.csv"),'w')
     fout_query_index.write("query,query_length,matching_refs\n")
 
     # relative_ref_position_by_query is sorted by rel_pos
@@ -116,7 +119,7 @@ def run(args):
 
 
     f = open(coords)
-    fout = open(output_prefix + ".oriented_coords.csv",'w')
+    fout = open(os.path.join(output_dir, "assemblytics_oriented_coords.csv"),'w')
     header = f.readline().strip()
     fout.write(header+",alignment_length\n") # copy the header
 
@@ -144,7 +147,7 @@ def run(args):
     uniques.sort(key=lambda x: x[alignment_length_column],reverse=True)
     repetitives.sort(key=lambda x: x[alignment_length_column],reverse=True)
     
-    fout_info = open(output_prefix + ".info.csv",'w')
+    fout_info = open(os.path.join(output_dir, "assemblytics_info.csv"),'w')
     fout_info.write("key,value\n")
     fout_info.write("unique alignments,%d\n" % len(uniques))
     fout_info.write("repetitive alignments,%d\n" % len(repetitives))
@@ -158,7 +161,7 @@ def run(args):
             fout.write(",".join(map(str,fields)) + "\n")
         fout_info.write("showing repetitive alignments,True\n")
     else:
-        fout_repeats = open(output_prefix + ".oriented_coords.repetitive.csv",'w')
+        fout_repeats = open(os.path.join(output_dir, "assemblytics_oriented_coords_repetitive.csv"),'w')
         fout_repeats.write(header+",alignment_length\n") # copy the header
         for fields in repetitives:
             fout_repeats.write(",".join(map(str,fields)) + "\n")
@@ -176,7 +179,7 @@ def natural_key(string_):
 def main():
     parser=argparse.ArgumentParser(description="Index and orient a coordinate file for dotplots.")
     parser.add_argument("-coords",help="coords.csv file from Assemblytics_uniq_anchor.py" ,dest="coords", type=str, required=True)
-    parser.add_argument("-out",help="output prefix for indices and oriented coordinates file" ,dest="out", type=str, required=True)
+    parser.add_argument("-out",help="output directory for assemblytics_* index and oriented coordinates files (default: current directory)" ,dest="out", type=str, default=".")
     parser.set_defaults(func=run)
     args=parser.parse_args()
     args.func(args)

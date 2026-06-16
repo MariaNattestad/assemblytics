@@ -22,7 +22,7 @@ from Assemblytics_variant_charts import run as run_variant_charts
 from Assemblytics_within_alignment import run as run_within_alignment
 
 
-USAGE = "Assemblytics delta output_prefix unique_length_required min_size max_size"
+USAGE = "assemblytics.py -d delta -o output_dir -l unique_length -min min_size -max max_size"
 
 STRUCTURAL_VARIANTS_HEADER = (
     "#reference\tref_start\tref_stop\tID\tsize\tstrand\ttype\t"
@@ -40,22 +40,22 @@ def fail(log_file, step, message, exit_code=1):
     sys.exit(exit_code)
 
 
-def combine_variants(output_prefix):
-    combined_path = output_prefix + ".Assemblytics_structural_variants.bed"
+def combine_variants(output_dir):
+    combined_path = os.path.join(output_dir, "assemblytics_structural_variants.bed")
     with open(combined_path, "w") as combined:
         combined.write(STRUCTURAL_VARIANTS_HEADER + "\n")
-        for suffix in ("variants_within_alignments.bed", "variants_between_alignments.bed"):
-            path = output_prefix + "." + suffix
+        for name in ("assemblytics_variants_within_alignments.bed", "assemblytics_variants_between_alignments.bed"):
+            path = os.path.join(output_dir, name)
             if os.path.exists(path) and os.path.getsize(path) > 0:
                 with open(path) as variants:
                     combined.write(variants.read())
     return combined_path
 
 
-def write_coords_genome_files(output_prefix):
-    coords_tab = output_prefix + ".coords.tab"
-    ref_genome = output_prefix + ".coords.ref.genome"
-    query_genome = output_prefix + ".coords.query.genome"
+def write_coords_genome_files(output_dir):
+    coords_tab = os.path.join(output_dir, "assemblytics_coords.tab")
+    ref_genome = os.path.join(output_dir, "assemblytics_ref.genome")
+    query_genome = os.path.join(output_dir, "assemblytics_query.genome")
 
     ref_entries = {}
     query_entries = {}
@@ -85,7 +85,7 @@ def format_column_table(lines):
     for row in table:
         for i, field in enumerate(row):
             col_widths[i] = max(col_widths[i], len(field))
-    
+
     # Format rows
     formatted_rows = []
     for row in table:
@@ -94,31 +94,29 @@ def format_column_table(lines):
     return "\n".join(formatted_rows) + "\n"
 
 
-def write_variant_preview(output_prefix, num_lines=10):
-    bed_path = output_prefix + ".Assemblytics_structural_variants.bed"
-    preview_path = output_prefix + ".variant_preview.txt"
+def write_variant_preview(output_dir, num_lines=10):
+    bed_path = os.path.join(output_dir, "assemblytics_structural_variants.bed")
+    preview_path = os.path.join(output_dir, "assemblytics_variant_preview.txt")
     with open(bed_path) as bed:
         preview_lines = [line.rstrip("\n") for index, line in enumerate(bed) if index < num_lines]
-    
+
     formatted_preview = format_column_table(preview_lines)
     with open(preview_path, "w") as preview:
         preview.write(formatted_preview)
 
 
-def zip_results(output_prefix):
-    zip_path = output_prefix + ".Assemblytics_results.zip"
+def zip_results(output_dir):
+    zip_path = os.path.join(output_dir, "assemblytics_results.zip")
     zip_filename = os.path.basename(zip_path)
-    prefix_dir = os.path.dirname(output_prefix)
-    prefix_name = os.path.basename(output_prefix)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
-        for filename in os.listdir(prefix_dir or "."):
-            if filename.startswith(prefix_name + ".Assemblytics") and filename != zip_filename:
-                archive.write(os.path.join(prefix_dir, filename), filename)
+        for filename in os.listdir(output_dir):
+            if filename.startswith("assemblytics_") and filename != zip_filename:
+                archive.write(os.path.join(output_dir, filename), filename)
 
 
-def run_summary_to_file(output_prefix, minimum_size, maximum_size):
-    summary_path = output_prefix + ".Assemblytics_structural_variants.summary"
-    bed_path = output_prefix + ".Assemblytics_structural_variants.bed"
+def run_summary_to_file(output_dir, minimum_size, maximum_size):
+    summary_path = os.path.join(output_dir, "assemblytics_structural_variants_summary.txt")
+    bed_path = os.path.join(output_dir, "assemblytics_structural_variants.bed")
     summary_args = argparse.Namespace(
         file=bed_path,
         minimum_variant_size=minimum_size,
@@ -137,43 +135,38 @@ def run_summary_to_file(output_prefix, minimum_size, maximum_size):
 
 def run(args):
     delta = args.delta
-    output_prefix = args.output_prefix
+    output_dir = args.output_dir
     unique_length = args.unique_length
     minimum_size = args.minimum_size
     maximum_size = args.maximum_size
 
     print("Input delta file:", delta)
-    print("Output prefix:", output_prefix)
+    print("Output directory:", output_dir)
     print("Unique anchor length:", unique_length)
     print("Minimum variant size to call:", minimum_size)
     print("Maximum variant size to call:", maximum_size)
 
-    output_dir = os.path.dirname(output_prefix)
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
-    log_file = os.path.join(output_dir, "progress.log") if output_dir else "progress.log"
+    log_file = os.path.join(output_dir, "assemblytics_progress.log")
     print("Logging progress updates in", log_file)
 
-    log_progress(log_file, os.path.basename(output_prefix))
     log_progress(log_file, "STARTING,DONE,Starting unique anchor filtering.")
 
     print("1. Filter delta file")
     run_uniq_anchor(
         argparse.Namespace(
             delta=delta,
-            out=output_prefix,
+            out=output_dir,
             unique_length=unique_length,
             keep_small_uniques=True,
         )
     )
-    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics_assembly_stats.txt")
-    print("FILE_READY:" + os.path.basename(output_prefix) + ".coords.tab")
-    print("FILE_READY:" + os.path.basename(output_prefix) + ".coords.csv")
+    print("FILE_READY:assemblytics_assembly_stats.txt")
+    print("FILE_READY:assemblytics_coords.tab")
+    print("FILE_READY:assemblytics_coords.csv")
 
-    filtered_delta = "{}.Assemblytics.unique_length_filtered_l{}.delta.gz".format(
-        output_prefix, unique_length
-    )
+    filtered_delta = os.path.join(output_dir, "assemblytics_unique_length_filtered_l{}.delta.gz".format(unique_length))
     if not os.path.exists(filtered_delta):
         fail(
             log_file,
@@ -189,10 +182,10 @@ def run(args):
     )
 
     print("2. Finding variants between alignments")
-    between_path = output_prefix + ".variants_between_alignments.bed"
+    between_path = os.path.join(output_dir, "assemblytics_variants_between_alignments.bed")
     run_between_alignments(
         argparse.Namespace(
-            coordsfile=output_prefix + ".coords.tab",
+            coordsfile=os.path.join(output_dir, "assemblytics_coords.tab"),
             minimum_event_size=minimum_size,
             maximum_event_size=maximum_size,
             chromosome_filter="all-chromosomes",
@@ -216,7 +209,7 @@ def run(args):
     )
 
     print("3. Finding variants within alignments")
-    within_path = output_prefix + ".variants_within_alignments.bed"
+    within_path = os.path.join(output_dir, "assemblytics_variants_within_alignments.bed")
     run_within_alignment(
         argparse.Namespace(
             delta=filtered_delta,
@@ -239,7 +232,7 @@ def run(args):
     )
 
     print("4. Combine variants between and within alignments")
-    combined_path = combine_variants(output_prefix)
+    combined_path = combine_variants(output_dir)
     if not os.path.exists(combined_path):
         fail(log_file, "COMBINE,FAIL,Step 4: combining variants failed")
     print("FILE_READY:" + os.path.basename(combined_path))
@@ -253,33 +246,33 @@ def run(args):
     print("5. Index coordinates and generate summary statistics")
     run_index(
         argparse.Namespace(
-            coords=output_prefix + ".coords.csv",
-            out=output_prefix,
+            coords=os.path.join(output_dir, "assemblytics_coords.csv"),
+            out=output_dir,
         )
     )
-    write_coords_genome_files(output_prefix)
-    run_summary_to_file(output_prefix, minimum_size, maximum_size)
-    write_variant_preview(output_prefix)
-    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics_structural_variants.summary")
-    print("FILE_READY:" + os.path.basename(output_prefix) + ".variant_preview.txt")
+    write_coords_genome_files(output_dir)
+    run_summary_to_file(output_dir, minimum_size, maximum_size)
+    write_variant_preview(output_dir)
+    print("FILE_READY:assemblytics_structural_variants_summary.txt")
+    print("FILE_READY:assemblytics_variant_preview.txt")
 
     print("6. Generating figures")
-    run_variant_charts(output_prefix, minimum_size, maximum_size)
+    run_variant_charts(output_dir, minimum_size, maximum_size)
     # Charts are ready incrementally too
-    charts = [f for f in os.listdir(output_dir or ".") if f.startswith(os.path.basename(output_prefix) + ".Assemblytics.size_distributions") and f.endswith(".png")]
+    charts = [f for f in os.listdir(output_dir) if f.startswith("assemblytics_size_distributions") and f.endswith(".png")]
     for chart in charts:
         print("FILE_READY:" + chart)
 
-    run_dotplot(output_prefix)
-    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics.Dotplot_filtered.png")
-    
-    run_nchart(output_prefix)
-    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics.Nchart.png")
+    run_dotplot(output_dir)
+    print("FILE_READY:assemblytics_dotplot_filtered.png")
 
-    zip_results(output_prefix)
-    print("FILE_READY:" + os.path.basename(output_prefix) + ".Assemblytics_results.zip")
+    run_nchart(output_dir)
+    print("FILE_READY:assemblytics_nchart.png")
 
-    summary_path = output_prefix + ".Assemblytics_structural_variants.summary"
+    zip_results(output_dir)
+    print("FILE_READY:assemblytics_results.zip")
+
+    summary_path = os.path.join(output_dir, "assemblytics_structural_variants_summary.txt")
     with open(summary_path) as summary:
         if "Total" not in summary.read():
             fail(log_file, "SUMMARY,FAIL,Step 5: Assemblytics_summary.py failed")
@@ -296,7 +289,7 @@ def main():
         usage=USAGE,
     )
     parser.add_argument("-d", "--delta", help="MUMmer delta file (.delta or .delta.gz)", required=True)
-    parser.add_argument("-o", "--output_prefix", help="Output file prefix (may include a directory path)", required=True)
+    parser.add_argument("-o", "--output_dir", help="Output directory for assemblytics_* result files (default: current directory)", default=".")
     parser.add_argument("-l", "--unique_length", type=int, default=10000, help="Unique anchor length requirement (default: 10000)")
     parser.add_argument("-min", "--minimum_size", type=int, default=50, help="Minimum variant size to call (default: 50)")
     parser.add_argument("-max", "--maximum_size", type=int, default=10000, help="Maximum variant size to call (default: 10000)")

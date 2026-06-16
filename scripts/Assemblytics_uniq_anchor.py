@@ -2,6 +2,7 @@
 
 import argparse
 import gzip
+import os
 import time
 import numpy as np
 import operator
@@ -10,8 +11,10 @@ import operator
 def run(args):
     filename = args.delta
     unique_length = args.unique_length
-    output_filename = args.out
+    output_dir = args.out
     keep_small_uniques = args.keep_small_uniques
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     # if keep_small_uniques:
     #     print("Keeping fully unique alignments even if they are below the unique anchor length of", unique_length, "bp")
     # else:
@@ -85,7 +88,7 @@ def run(args):
         query_counter += 1
     before = time.time()
 
-    fout = gzip.open(output_filename + ".Assemblytics.unique_length_filtered_l%d.delta.gz" % (unique_length),'wt')
+    fout = gzip.open(os.path.join(output_dir, "assemblytics_unique_length_filtered_l%d.delta.gz" % (unique_length)),'wt')
     
     try:
         f = gzip.open(filename, 'rt')
@@ -109,8 +112,8 @@ def run(args):
     # For coords:
     current_query_name = ""
     current_query_position = 0
-    fcoords_out_tab = open(output_filename + ".coords.tab",'w')
-    fcoords_out_csv = open(output_filename + ".coords.csv",'w')
+    fcoords_out_tab = open(os.path.join(output_dir, "assemblytics_coords.tab"),'w')
+    fcoords_out_csv = open(os.path.join(output_dir, "assemblytics_coords.csv"),'w')
     fcoords_out_csv.write("ref_start,ref_end,query_start,query_end,ref_length,query_length,ref,query,tag\n")
 
 
@@ -120,7 +123,7 @@ def run(args):
     ref_lengths = []
     query_lengths = []
 
-    f_stats_out = open(output_filename + ".Assemblytics_assembly_stats.txt","w")
+    f_stats_out = open(os.path.join(output_dir, "assemblytics_assembly_stats.txt"),"w")
 
     for line in f:
         linecounter += 1
@@ -328,7 +331,7 @@ def binary_search(query, numbers, left, right):
 def main():
     parser=argparse.ArgumentParser(description="Filters alignments in delta file based whether each alignment has a unique sequence anchoring it")
     parser.add_argument("--delta",help="delta file" ,dest="delta", type=str, required=True)
-    parser.add_argument("--out",help="output file" ,dest="out", type=str, required=True)
+    parser.add_argument("--out",help="output directory for assemblytics_* files (default: current directory)" ,dest="out", type=str, default=".")
     parser.add_argument("--unique-length",help="The total length of unique sequence an alignment must have on the query side to be retained. Default: 10000" ,dest="unique_length",type=int, default=10000)
     parser.add_argument("--keep-small-uniques",help="Keep small aligments (below the unique anchor length) if they are completely unique without any part of the alignment mapping multiple places" ,dest="keep_small_uniques",action="store_true")
     parser.set_defaults(func=run)

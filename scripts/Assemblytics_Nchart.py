@@ -18,10 +18,10 @@ def bp_format(num):
     else:
         return "{:,} bp".format(int(num))
 
-def run(prefix):
-    # Instead of reading .coords.ref.genome and .coords.query.genome, 
+def run(output_dir):
+    # Instead of reading .coords.ref.genome and .coords.query.genome,
     # we'll read .coords.tab and generate the data ourselves.
-    coords_tab = prefix + ".coords.tab"
+    coords_tab = os.path.join(output_dir, "assemblytics_coords.tab")
     if not os.path.exists(coords_tab):
         print(f"File {coords_tab} not found.")
         return
@@ -93,11 +93,11 @@ def run(prefix):
 
     plt.tight_layout()
     for fmt in ['png', 'pdf']:
-        plt.savefig(f"{prefix}.Assemblytics.Nchart.{fmt}", dpi=200)
+        plt.savefig(os.path.join(output_dir, f"assemblytics_nchart.{fmt}"), dpi=200)
     plt.close()
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: Assemblytics_Nchart.py prefix")
+        print("Usage: Assemblytics_Nchart.py output_dir")
         sys.exit(1)
     run(sys.argv[1])
