@@ -139,7 +139,8 @@ def run(args):
 
     print("2. Finding structural variants")
     combined_path = os.path.join(output_dir, "assemblytics_structural_variants.bed")
-    run_variants(filtered_delta, minimum_size, maximum_size, minimum_size, combined_path)
+    long_range_path = os.path.join(output_dir, "assemblytics_long_range_variants.bed") if args.long_range else None
+    run_variants(filtered_delta, minimum_size, maximum_size, minimum_size, combined_path, long_range_path)
     if not os.path.exists(combined_path):
         fail(
             log_file,
@@ -147,6 +148,8 @@ def run(args):
             "Possible problem with Python on server.",
         )
     print("FILE_READY:" + os.path.basename(combined_path))
+    if args.long_range:
+        print("FILE_READY:" + os.path.basename(long_range_path))
 
     log_progress(
         log_file,
@@ -203,6 +206,19 @@ def main():
     parser.add_argument("-l", "--unique_length", type=int, default=10000, help="Unique anchor length requirement (default: 10000)")
     parser.add_argument("-min", "--minimum_size", type=int, default=50, help="Minimum variant size to call (default: 50)")
     parser.add_argument("-max", "--maximum_size", type=int, default=10000, help="Maximum variant size to call (default: 10000)")
+    parser.add_argument(
+        "--long-range",
+        dest="long_range",
+        action="store_true",
+        help=(
+            "Also report long-range and inter-chromosomal candidate variants (events bigger "
+            "than --maximum_size, or spanning two different reference chromosomes) to a "
+            "separate assemblytics_long_range_variants.bed file. These are usually caused by "
+            "misassemblies, but can also represent real translocations or other large-scale "
+            "rearrangements, so they're kept out of the main results by default and require "
+            "manual review."
+        ),
+    )
     parser.set_defaults(func=run)
     args = parser.parse_args()
     args.func(args)

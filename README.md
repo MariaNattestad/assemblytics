@@ -83,6 +83,16 @@ assemblytics -d input_examples/ecoli.delta.gz -o ecoli_output
 # Defaults are unique_length=10000, minimum_size=50, maximum_size=10000. For small genomes (e.g. bacteria), you may want to reduce the unique_length to 1000.
 ```
 
+By default, candidate variants that span two different reference chromosomes ("Interchromosomal") or that are larger than `--maximum_size` ("Longrange") are left out of the main results, since most of them come from misassemblies rather than real variants. Pass `--long-range` to also write these candidates to a separate `assemblytics_long_range_variants.bed`, so they're easy to find but clearly kept apart from the main, higher-confidence call set:
+
+```bash
+assemblytics -d input_examples/ecoli.delta.gz -o ecoli_output --long-range
+
+# In addition to the usual output, this also writes ecoli_output/assemblytics_long_range_variants.bed.
+# These candidates are usually misassemblies, but can occasionally be real translocations or
+# other large-scale rearrangements -- review them manually before trusting them as true variants.
+```
+
 ## Testing
 
 `output_examples/` contains pre-computed results for five organisms, generated from the delta files in `input_examples/`. These are kept around (and untouched by any refactoring) specifically so the pipeline's correctness can be checked by re-running it and comparing the variant calls. The most important file to compare is `assemblytics_structural_variants.bed` (the combined, final set of structural variant calls) — everything else (plots, indices, summary stats) is derived from it.

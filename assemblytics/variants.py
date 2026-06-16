@@ -173,19 +173,25 @@ def classify_sv(ai, aj, rid, qid, narrow_threshold, longrange, max_query_dist):
     }
 
 
-def passes_filters(sv, minimum_event_size):
+def classify_for_output(sv, minimum_event_size):
+    """Returns "main", "longrange", or None (drop) for this candidate SV.
+
+    chromosome_filter="all-chromosomes" is the only mode ever used by the
+    orchestrator, so that filter is hardcoded away (it was a no-op in that
+    mode anyway). Long-range/interchromosomal candidates are routed to a
+    separate bucket instead of being dropped, so the caller can choose to
+    keep them in their own output file.
+    """
     typeguess = sv["typeguess"]
     abs_event_size = sv["abs_event_size"]
 
     if typeguess in ("Inversion", "None"):
-        return False
+        return None
     if abs_event_size < minimum_event_size:
-        return False
-    # chromosome_filter="all-chromosomes" and longrange_filter="exclude-longrange"
-    # are the only modes ever used by the orchestrator, so they're hardcoded here.
+        return None
     if typeguess in ("Interchromosomal", "Longrange"):
-        return False
-    return True
+        return "longrange"
+    return "main"
 
 
 def format_bed_record(sv_id_counter, sv):
@@ -216,7 +222,8 @@ def format_bed_record(sv_id_counter, sv):
 
 def find_between_alignment_variants(alignments, minimum_event_size, maximum_event_size):
     sv_id_counter = 0
-    output_lines = []
+    main_lines = []
+    longrange_lines = []
 
     for qid in sorted(alignments):
         refs = sorted(alignments[qid])
@@ -240,12 +247,13 @@ def find_between_alignment_variants(alignments, minimum_event_size, maximum_even
             sv_id_counter += 1
             sv = classify_sv(ai, aj, rid, qid, NARROW_THRESHOLD, maximum_event_size, MAX_QUERY_DIST)
 
-            if not passes_filters(sv, minimum_event_size):
-                continue
+            bucket = classify_for_output(sv, minimum_event_size)
+            if bucket == "main":
+                main_lines.append(format_bed_record(sv_id_counter, sv))
+            elif bucket == "longrange":
+                longrange_lines.append(format_bed_record(sv_id_counter, sv))
 
-            output_lines.append(format_bed_record(sv_id_counter, sv))
-
-    return output_lines
+    return main_lines, longrange_lines
 
 
 def find_within_alignment_variants(within_variants, minimum_variant_size):
@@ -261,7 +269,14 @@ def find_within_alignment_variants(within_variants, minimum_variant_size):
     return output_lines
 
 
-def run(filtered_delta_path, minimum_event_size, maximum_event_size, minimum_variant_size, output_path):
+LONGRANGE_HEADER_COMMENT = (
+    "# Long-range and inter-chromosomal candidate variants: these are usually caused by "
+    "misassemblies, but can also represent real translocations or other large-scale "
+    "rearrangements. Inspect manually before treating them as confirmed structural variants."
+)
+
+
+def run(filtered_delta_path, minimum_event_size, maximum_event_size, minimum_variant_size, output_path, long_range_output_path=None):
     try:
         f = gzip.open(filtered_delta_path, 'rt')
         f.readline()  # first line: reference/query fasta paths
@@ -347,7 +362,9 @@ def run(filtered_delta_path, minimum_event_size, maximum_event_size, minimum_var
     f.close()
 
     within_lines = find_within_alignment_variants(within_variants, minimum_variant_size)
-    between_lines = find_between_alignment_variants(alignments, minimum_event_size, maximum_event_size)
+    between_lines, longrange_lines = find_between_alignment_variants(
+        alignments, minimum_event_size, maximum_event_size
+    )
 
     with open(output_path, "w") as out:
         out.write(STRUCTURAL_VARIANTS_HEADER + "\n")
@@ -356,9 +373,17 @@ def run(filtered_delta_path, minimum_event_size, maximum_event_size, minimum_var
         for line in between_lines:
             out.write(line + "\n")
 
+    if long_range_output_path:
+        with open(long_range_output_path, "w") as out:
+            out.write(LONGRANGE_HEADER_COMMENT + "\n")
+            out.write(STRUCTURAL_VARIANTS_HEADER + "\n")
+            for line in longrange_lines:
+                out.write(line + "\n")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 6:
-        print("Usage: variants.py filtered_delta minimum_event_size maximum_event_size minimum_variant_size output_path")
+        print("Usage: variants.py filtered_delta minimum_event_size maximum_event_size minimum_variant_size output_path [long_range_output_path]")
         sys.exit(1)
-    run(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5])
+    long_range_path = sys.argv[6] if len(sys.argv) > 6 else None
+    run(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], long_range_path)
