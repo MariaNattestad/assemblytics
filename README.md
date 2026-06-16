@@ -80,6 +80,46 @@ scripts/Assemblytics.py -d input_examples/Ecoli.delta.gz -o ecoli_output
 # Defaults are unique_length=10000, minimum_size=50, maximum_size=10000. For small genomes (e.g. bacteria), you may want to reduce the unique_length to 1000.
 ```
 
+## Testing
+
+`output_examples/` contains pre-computed results for five organisms, generated from the delta files in `input_examples/`. These are kept around (and untouched by any refactoring) specifically so the pipeline's correctness can be checked by re-running it and comparing the variant calls. The most important file to compare is `assemblytics_structural_variants.bed` (the combined, final set of structural variant calls) — everything else (plots, indices, summary stats) is derived from it.
+
+To re-run the pipeline on each input and diff its variant calls against the matching example output:
+
+```bash
+# E. coli (uses a smaller unique anchor length since it's a small genome)
+scripts/Assemblytics.py -d input_examples/Ecoli.delta.gz -o /tmp/assemblytics_test/ecoli -l 1000
+diff <(tail -n +2 /tmp/assemblytics_test/ecoli/assemblytics_structural_variants.bed | sort) \
+     <(tail -n +2 output_examples/ecoli/E__coli_example.Assemblytics_structural_variants.bed | sort) \
+     && echo "ecoli: OK"
+
+# Yeast (Saccharomyces cerevisiae)
+scripts/Assemblytics.py -d input_examples/Saccharomyces_cerevisiae.delta.gz -o /tmp/assemblytics_test/yeast
+diff <(tail -n +2 /tmp/assemblytics_test/yeast/assemblytics_structural_variants.bed | sort) \
+     <(tail -n +2 output_examples/yeast/Saccharomyces_cerevisiae_example.Assemblytics_structural_variants.bed | sort) \
+     && echo "yeast: OK"
+
+# Arabidopsis thaliana
+scripts/Assemblytics.py -d input_examples/Arabidopsis_thaliana.delta.gz -o /tmp/assemblytics_test/arabidopsis
+diff <(tail -n +2 /tmp/assemblytics_test/arabidopsis/assemblytics_structural_variants.bed | sort) \
+     <(tail -n +2 output_examples/arabidopsis/Arabidopsis_example.Assemblytics_structural_variants.bed | sort) \
+     && echo "arabidopsis: OK"
+
+# Drosophila melanogaster
+scripts/Assemblytics.py -d input_examples/Drosophila_melanogaster.delta.gz -o /tmp/assemblytics_test/drosophila
+diff <(tail -n +2 /tmp/assemblytics_test/drosophila/assemblytics_structural_variants.bed | sort) \
+     <(tail -n +2 output_examples/drosophila/Drosophila_example.Assemblytics_structural_variants.bed | sort) \
+     && echo "drosophila: OK"
+
+# Human (assembly aligned to hg19) -- the largest input, this one takes the longest to run
+scripts/Assemblytics.py -d input_examples/Homo_sapiens.l10000.delta.gz -o /tmp/assemblytics_test/human
+diff <(tail -n +2 /tmp/assemblytics_test/human/assemblytics_structural_variants.bed | sort) \
+     <(tail -n +2 output_examples/human/Human_NA12878_to_hg19.Assemblytics_structural_variants.bed | sort) \
+     && echo "human: OK"
+```
+
+Each `diff` should print nothing (no differences) followed by the "OK" line. The `tail -n +2` skips the header line, and `sort` makes the comparison order-independent since variant IDs can legitimately be assigned in a different order between runs.
+
 ## Local web app instructions
 The whole web application can be downloaded and run locally, utilizing the graphical user interface and giving the added benefit of the interactive dot plot which is only available in the web version and cannot run from the CLI.
 
