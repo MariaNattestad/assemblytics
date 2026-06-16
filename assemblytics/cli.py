@@ -8,22 +8,16 @@ import os
 import sys
 import zipfile
 
-from .between_alignments import run as run_between_alignments
 from .dotplot import run as run_dotplot
 from .index import run as run_index
 from .nchart import run as run_nchart
 from .summary import SVtable as run_summary
 from .uniq_anchor import run as run_uniq_anchor
 from .variant_charts import run as run_variant_charts
-from .within_alignment import run as run_within_alignment
+from .variants import run as run_variants
 
 
 USAGE = "assemblytics -d delta -o output_dir -l unique_length -min min_size -max max_size"
-
-STRUCTURAL_VARIANTS_HEADER = (
-    "#reference\tref_start\tref_stop\tID\tsize\tstrand\ttype\t"
-    "ref_gap_size\tquery_gap_size\tquery_coordinates\tmethod"
-)
 
 
 def log_progress(log_file, message):
@@ -34,18 +28,6 @@ def log_progress(log_file, message):
 def fail(log_file, step, message, exit_code=1):
     log_progress(log_file, step)
     sys.exit(exit_code)
-
-
-def combine_variants(output_dir):
-    combined_path = os.path.join(output_dir, "assemblytics_structural_variants.bed")
-    with open(combined_path, "w") as combined:
-        combined.write(STRUCTURAL_VARIANTS_HEADER + "\n")
-        for name in ("assemblytics_variants_within_alignments.bed", "assemblytics_variants_between_alignments.bed"):
-            path = os.path.join(output_dir, name)
-            if os.path.exists(path) and os.path.getsize(path) > 0:
-                with open(path) as variants:
-                    combined.write(variants.read())
-    return combined_path
 
 
 def format_column_table(lines):
@@ -155,69 +137,24 @@ def run(args):
         "Now finding variants between alignments.",
     )
 
-    print("2. Finding variants between alignments")
-    between_path = os.path.join(output_dir, "assemblytics_variants_between_alignments.bed")
-    run_between_alignments(
-        argparse.Namespace(
-            coordsfile=os.path.join(output_dir, "assemblytics_coords.tab"),
-            minimum_event_size=minimum_size,
-            maximum_event_size=maximum_size,
-            chromosome_filter="all-chromosomes",
-            longrange_filter="exclude-longrange",
-            output_file="bed",
-            output_path=between_path,
-        )
-    )
-    if not os.path.exists(between_path):
+    print("2. Finding structural variants")
+    combined_path = os.path.join(output_dir, "assemblytics_structural_variants.bed")
+    run_variants(filtered_delta, minimum_size, maximum_size, minimum_size, combined_path)
+    if not os.path.exists(combined_path):
         fail(
             log_file,
-            "BETWEEN,FAIL,Step 2: between_alignments.py failed: "
+            "VARIANTS,FAIL,Step 2: variants.py failed: "
             "Possible problem with Python on server.",
         )
-    print("FILE_READY:" + os.path.basename(between_path))
-
-    log_progress(
-        log_file,
-        "BETWEEN,DONE,Step 2: between_alignments.py completed successfully. "
-        "Now finding variants within alignments.",
-    )
-
-    print("3. Finding variants within alignments")
-    within_path = os.path.join(output_dir, "assemblytics_variants_within_alignments.bed")
-    run_within_alignment(
-        argparse.Namespace(
-            delta=filtered_delta,
-            minimum_variant_size=minimum_size,
-            output_path=within_path,
-        )
-    )
-    if not os.path.exists(within_path):
-        fail(
-            log_file,
-            "WITHIN,FAIL,Step 3: within_alignment.py failed: "
-            "Possible problem before this step or with Python on server.",
-        )
-    print("FILE_READY:" + os.path.basename(within_path))
-
-    log_progress(
-        log_file,
-        "WITHIN,DONE,Step 3: within_alignment.py completed successfully. "
-        "Now combining the two sets of variants together.",
-    )
-
-    print("4. Combine variants between and within alignments")
-    combined_path = combine_variants(output_dir)
-    if not os.path.exists(combined_path):
-        fail(log_file, "COMBINE,FAIL,Step 4: combining variants failed")
     print("FILE_READY:" + os.path.basename(combined_path))
 
     log_progress(
         log_file,
-        "COMBINE,DONE,Step 4: Variants combined successfully. "
+        "VARIANTS,DONE,Step 2: variants.py completed successfully. "
         "Now generating figures and summary statistics.",
     )
 
-    print("5. Index coordinates and generate summary statistics")
+    print("3. Index coordinates and generate summary statistics")
     run_index(
         argparse.Namespace(
             coords=os.path.join(output_dir, "assemblytics_coords.csv"),
@@ -229,7 +166,7 @@ def run(args):
     print("FILE_READY:assemblytics_structural_variants_summary.txt")
     print("FILE_READY:assemblytics_variant_preview.txt")
 
-    print("6. Generating figures")
+    print("4. Generating figures")
     run_variant_charts(output_dir, minimum_size, maximum_size)
     # Charts are ready incrementally too
     charts = [f for f in os.listdir(output_dir) if f.startswith("assemblytics_size_distributions") and f.endswith(".png")]
@@ -248,11 +185,11 @@ def run(args):
     summary_path = os.path.join(output_dir, "assemblytics_structural_variants_summary.txt")
     with open(summary_path) as summary:
         if "Total" not in summary.read():
-            fail(log_file, "SUMMARY,FAIL,Step 5: summary.py failed")
+            fail(log_file, "SUMMARY,FAIL,Step 3: summary.py failed")
 
     log_progress(
         log_file,
-        "SUMMARY,DONE,Step 5: summary.py completed successfully",
+        "SUMMARY,DONE,Step 3: summary.py completed successfully",
     )
 
 

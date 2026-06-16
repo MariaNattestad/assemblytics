@@ -20,8 +20,8 @@ if os.getcwd() not in sys.path:
 
         // Fetch and mount the assemblytics package directly in the worker
         const packageFiles = [
-            '__init__.py', 'uniq_anchor.py', 'between_alignments.py',
-            'within_alignment.py', 'index.py', 'summary.py',
+            '__init__.py', 'uniq_anchor.py', 'variants.py',
+            'index.py', 'summary.py',
             'variant_charts.py', 'dotplot.py', 'nchart.py', 'cli.py'
         ];
 
