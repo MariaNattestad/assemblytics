@@ -62,9 +62,9 @@ See this example showing the point of unique anchor filtering (from the bioRxiv 
 pip install -e .
 ```
 
-This installs the `assemblytics` package (the orchestrator and all of its pipeline stages live in `assemblytics/`) along with an `assemblytics` console command. A versioned release on PyPI and an updated bioconda recipe are in progress (see `packaging/bioconda/meta.yaml` for a draft).
+This installs the `assemblytics` package (the orchestrator and all of its pipeline stages live in `public/assemblytics/` -- it's kept inside `public/` so the same files are served directly to the web app, with no separate copy to keep in sync) along with an `assemblytics` console command. A versioned release on PyPI and an updated bioconda recipe are in progress (see `packaging/bioconda/meta.yaml` for a draft).
 
-If you'd rather not install anything, you can run the pipeline directly from a clone with `python -m assemblytics.cli` instead of `assemblytics` in any command below.
+If you'd rather not install anything, you can run the pipeline directly from a clone: `cd public && python -m assemblytics.cli` instead of `assemblytics` in any command below (input/output paths are then relative to `public/`, e.g. `../input_examples/...`).
 
 ## Command-line instructions
 
@@ -131,7 +131,7 @@ diff <(tail -n +2 /tmp/assemblytics_test/human/assemblytics_structural_variants.
      && echo "human: OK"
 ```
 
-(No `pip install -e .` yet? Replace `assemblytics` with `python -m assemblytics.cli` in each command above.)
+(No `pip install -e .` yet? Run these from inside `public/` instead, replacing `assemblytics` with `python -m assemblytics.cli` and adjusting the `input_examples/`/`output_examples/` paths to `../input_examples/`/`../output_examples/`.)
 
 Each `diff` should print nothing (no differences) followed by the "OK" line. The `tail -n +2` skips the header line, and `sort` makes the comparison order-independent since variant IDs can legitimately be assigned in a different order between runs.
 

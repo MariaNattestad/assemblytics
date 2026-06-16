@@ -32,3 +32,4 @@ assemblytics = "assemblytics.cli:main"
 
 [tool.setuptools]
 packages = ["assemblytics"]
+package-dir = { assemblytics = "public/assemblytics" }

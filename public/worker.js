@@ -27,7 +27,10 @@ if os.getcwd() not in sys.path:
 
         pyodide.FS.mkdir('assemblytics');
         for (const file of packageFiles) {
-            const response = await fetch(`../assemblytics/${file}`);
+            const response = await fetch(`./assemblytics/${file}`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch assemblytics/${file}: ${response.status} ${response.statusText}`);
+            }
             const content = await response.text();
             pyodide.FS.writeFile(`assemblytics/${file}`, content);
         }
@@ -79,7 +82,8 @@ args = argparse.Namespace(
     output_dir=".",
     unique_length=${data.params.unique_length},
     minimum_size=${data.params.min_size},
-    maximum_size=${data.params.max_size}
+    maximum_size=${data.params.max_size},
+    long_range=False
 )
 run(args)
             `);
