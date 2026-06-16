@@ -121,10 +121,13 @@ diff <(tail -n +2 /tmp/assemblytics_test/human/assemblytics_structural_variants.
 Each `diff` should print nothing (no differences) followed by the "OK" line. The `tail -n +2` skips the header line, and `sort` makes the comparison order-independent since variant IDs can legitimately be assigned in a different order between runs.
 
 ## Local web app instructions
-The whole web application can be downloaded and run locally, utilizing the graphical user interface and giving the added benefit of the interactive dot plot which is only available in the web version and cannot run from the CLI.
 
-Notes for installation:
-- Use a local server like [Apache](https://www.apachefriends.org/download.html) and follow the instructions there.
-- Clone this repository into a folder called `assemblytics`, to make the `.htaccess` file point the server correctly to the `public/` folder, where the index.php and other pages and web app resources are located.
-- Make sure to open up permissions in user_uploads and user_data so the webserver can read and write there. 
-- It does not contain the examples as some of these are huge files.
+The web app (`public/`) runs the entire Assemblytics pipeline client-side in the browser via [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly) and a Web Worker. There is no server-side code, no upload step, and no installation beyond a static file server — your delta file never leaves your machine.
+
+To run it locally, serve the `public/` folder with any static file server, for example:
+
+```bash
+cd assemblytics
+python3 -m http.server 8000 --directory public
+# Then open http://localhost:8000 in your browser
+```
