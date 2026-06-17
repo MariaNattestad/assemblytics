@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assemblytics - Serverless Variant Detection</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@4.13.0/build/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ramda@0.25.0/dist/ramda.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@4.6.3/papaparse.min.js"></script>
+    <script src="MultiSegmentScale.js"></script>
+    <script>function showSpinner() {}</script>
+    <script src="Dot.js"></script>
     <style>
         :root {
             --primary: #007acc;
@@ -102,6 +108,51 @@
             justify-content: center; text-decoration: none; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
             color: #666;
         }
+
+        /* Tab bar */
+        #tab-bar {
+            background: #fff; border-bottom: 1px solid var(--border);
+            display: flex; gap: 0; padding: 0 2rem;
+        }
+        .tab-btn {
+            background: none; border: none; border-bottom: 3px solid transparent;
+            color: #777; padding: 0.6rem 1.2rem; font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; border-radius: 0; transition: color 0.15s, border-color 0.15s;
+            margin-bottom: -1px;
+        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Tab sections */
+        .tab-section { display: none; flex: 1; overflow: hidden; }
+        .tab-section.active { display: flex; }
+
+        /* Dot tab layout */
+        #dot-sidebar {
+            width: 260px; background: #fff; border-right: 1px solid var(--border);
+            padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;
+            flex-shrink: 0;
+        }
+        #dot-content {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff;
+        }
+        #dot-plot-container {
+            flex: 1; position: relative; overflow: hidden;
+        }
+
+        /* Dot upload area */
+        .dot-dropzone {
+            border: 2px dashed var(--border); border-radius: 6px; padding: 0.8rem;
+            text-align: center; cursor: pointer; background: #fafafa; font-size: 0.8rem;
+        }
+        .dot-dropzone.loaded { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; }
+
+        /* Open in Dot button */
+        #open-in-dot-btn {
+            display: none; width: 100%; background: #1a1a2e; color: #7ec8e3;
+            border: 1px solid #7ec8e3; margin-top: 0.5rem;
+        }
+        #open-in-dot-btn:hover { background: #2a2a4e; }
     </style>
 </head>
 <body>
@@ -111,8 +162,13 @@
         </div>
         <div id="runtime-status" class="help-text">Initializing Worker...</div>
     </header>
+    <div id="tab-bar">
+        <button class="tab-btn active" data-tab="analysis">Analysis</button>
+        <button class="tab-btn" data-tab="dot">Dot</button>
+    </div>
 
-    <main>
+    <main style="display:contents;">
+    <div id="tab-analysis" class="tab-section active">
         <div id="sidebar">
             <div id="upload-section">
                 <h4>1. Input Data</h4>
@@ -152,6 +208,7 @@
 
             <div id="action-section">
                 <button id="runBtn" style="width:100%" disabled>Readying Environment...</button>
+                <button id="open-in-dot-btn">Open in Dot →</button>
             </div>
             
             <div style="font-size:0.75rem; margin-top:0.75rem; display:flex; gap:1rem;">
@@ -207,12 +264,47 @@
                 <p>No software installation is required, and your data remains private.</p>
             </div>
         </div>
+    </div><!-- end #tab-analysis -->
+
+    <div id="tab-dot" class="tab-section">
+        <div id="dot-sidebar">
+            <div>
+                <h4 style="margin:0 0 0.75rem;">Load Dot files</h4>
+                <p style="font-size:0.8rem; color:#777; margin:0 0 0.75rem;">
+                    Run Assemblytics to generate these automatically, or load previously prepared files.
+                </p>
+                <div class="dot-dropzone" id="dot-coords-dropzone">
+                    <div id="dot-coords-label">Load .coords file</div>
+                    <input type="file" id="dot-coords-input" style="display:none" accept=".coords">
+                </div>
+                <div class="dot-dropzone" id="dot-idx-dropzone" style="margin-top:0.5rem;">
+                    <div id="dot-idx-label">Load .coords.idx file</div>
+                    <input type="file" id="dot-idx-input" style="display:none" accept=".idx">
+                </div>
+                <button id="dot-load-btn" style="width:100%; margin-top:0.75rem;" disabled>Load Files</button>
+            </div>
+            <div id="dot-memory-bar" style="display:none; flex-direction:column; gap:0.4rem;">
+                <div style="font-size:0.78rem; font-weight:600; color:#555; border-top:1px solid #eee; padding-top:0.75rem;">Load alignments</div>
+                <button id="load-unique-btn" style="background:#007acc; font-size:0.78rem; padding:0.3rem 0.6rem;">Load unique</button>
+                <button id="load-rep-btn" style="background:#e57373; font-size:0.78rem; padding:0.3rem 0.6rem;">Load repetitive</button>
+            </div>
+            <div style="flex:1;"></div>
+        </div>
+        <div id="dot-content">
+            <div id="dot-plot-container"></div>
+        </div>
+    </div><!-- end #tab-dot -->
     </main>
 
     <script type="text/javascript">
         const worker = new Worker('worker.js');
         let selectedFileData = null;
         let selectedFileName = null;
+        let dotCoordsData = null;    // Uint8Array of .coords file from pipeline
+        let dotIdxText = null;       // string of .coords.idx file from pipeline
+        let dotStandaloneCoordsBlob = null;
+        let dotStandaloneIdxText = null;
+        let dotPlot = null;
 
         const ui = {
             log: document.getElementById('log'),
@@ -229,8 +321,91 @@
             fileList: document.getElementById('file-list'),
             zipDownload: document.getElementById('zip-download'),
             sampleBanner: document.getElementById('sample-banner'),
-            useSampleBtn: document.getElementById('useSampleBtn')
+            useSampleBtn: document.getElementById('useSampleBtn'),
+            openInDotBtn: document.getElementById('open-in-dot-btn'),
         };
+
+        // --- Tab switching ---
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+                if (btn.dataset.tab === 'dot') onDotTabActivated();
+            });
+        });
+
+        function switchToDotTab() {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+            document.querySelector('[data-tab="dot"]').classList.add('active');
+            document.getElementById('tab-dot').classList.add('active');
+            onDotTabActivated();
+        }
+
+        ui.openInDotBtn.onclick = switchToDotTab;
+
+        // --- DotPlot parent shim ---
+        const dotParent = {
+            updateMemoryButtons: function(memUnique, memRepetitive) {
+                const bar = document.getElementById('dot-memory-bar');
+                const uBtn = document.getElementById('load-unique-btn');
+                const rBtn = document.getElementById('load-rep-btn');
+                const fmt = b => b > 0 ? (b / 1024 / 1024).toFixed(1) + ' MB' : null;
+                const uLabel = fmt(memUnique);
+                const rLabel = fmt(memRepetitive);
+                if (uLabel) { uBtn.textContent = `Load unique (${uLabel})`; uBtn.disabled = false; }
+                else { uBtn.textContent = 'Unique loaded'; uBtn.disabled = true; }
+                if (rLabel) { rBtn.textContent = `Load repetitive (${rLabel})`; rBtn.disabled = false; }
+                else { rBtn.textContent = 'Repetitive loaded'; rBtn.disabled = true; }
+                bar.style.display = 'flex';
+            },
+            updateLinkPositions: function() {},
+        };
+
+        document.getElementById('load-unique-btn').onclick = () => dotPlot && dotPlot.loadAllInView('unique');
+        document.getElementById('load-rep-btn').onclick = () => dotPlot && dotPlot.loadAllInView('repetitive');
+
+        // --- DotPlot initialization ---
+        function makeRandomAccess(blob) {
+            return function(startByte, endByte, asyncCallback) {
+                const reader = new FileReader();
+                reader.readAsBinaryString(blob.slice(startByte, endByte));
+                reader.onload = e => asyncCallback(e.target.result);
+            };
+        }
+
+        let dotResizeObserver = null;
+
+        function initDotPlot(coordsBlob, indexText) {
+            const container = document.getElementById('dot-plot-container');
+            container.innerHTML = '';
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            const el = d3.select('#dot-plot-container');
+            dotPlot = new DotPlot(el, { width: w, height: h, parent: dotParent });
+            dotPlot.setCoords(makeRandomAccess(coordsBlob), indexText);
+
+            if (dotResizeObserver) dotResizeObserver.disconnect();
+            dotResizeObserver = new ResizeObserver(() => {
+                if (!dotPlot) return;
+                const w2 = container.clientWidth;
+                const h2 = container.clientHeight;
+                dotPlot.state.layout.whole = { width: w2, height: h2 };
+                dotPlot.layoutPlot();
+                dotPlot.draw();
+            });
+            dotResizeObserver.observe(container);
+        }
+
+        function onDotTabActivated() {
+            if (dotPlot) return; // already initialized
+            if (dotCoordsData && dotIdxText) {
+                const blob = new Blob([dotCoordsData]);
+                initDotPlot(blob, dotIdxText);
+            }
+        }
 
         function log(msg, type='info') {
             const entry = document.createElement('div');
@@ -479,6 +654,12 @@
             ui.sampleBanner.style.display = 'none';
             ui.log.innerHTML = '';
             results_cache.length = 0;
+            dotCoordsData = null;
+            dotIdxText = null;
+            dotPlot = null;
+            ui.openInDotBtn.style.display = 'none';
+            document.getElementById('dot-memory-bar').style.display = 'none';
+            document.getElementById('dot-plot-container').innerHTML = '';
 
             log(`--- Starting Pipeline for ${selectedFileName} ---`);
 
@@ -525,6 +706,16 @@
         const DOWNLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg>`;
 
         function displayResult(name, data) {
+            if (name === 'assemblytics_dot.coords') {
+                dotCoordsData = data;
+                maybeEnableDotButton();
+                return;
+            }
+            if (name === 'assemblytics_dot.coords.idx') {
+                dotIdxText = new TextDecoder().decode(data);
+                maybeEnableDotButton();
+                return;
+            }
             if (name.endsWith('.png')) {
                 const blob = new Blob([data], { type: 'image/png' });
                 const url = URL.createObjectURL(blob);
@@ -561,6 +752,57 @@
                 ui.fileList.appendChild(link);
             }
         }
+
+        function maybeEnableDotButton() {
+            if (dotCoordsData && dotIdxText) {
+                ui.openInDotBtn.style.display = 'block';
+            }
+        }
+
+        // --- Standalone Dot file upload ---
+        function setupDotDropzone(dropzoneId, inputId, labelId, ext, onLoad) {
+            const dz = document.getElementById(dropzoneId);
+            const input = document.getElementById(inputId);
+            const label = document.getElementById(labelId);
+            dz.onclick = () => input.click();
+            input.onchange = e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                label.textContent = '✓ ' + file.name;
+                dz.classList.add('loaded');
+                onLoad(file);
+            };
+        }
+
+        setupDotDropzone('dot-coords-dropzone', 'dot-coords-input', 'dot-coords-label', '.coords', file => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                dotStandaloneCoordsBlob = new Blob([e.target.result]);
+                maybeEnableStandaloneDot();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        setupDotDropzone('dot-idx-dropzone', 'dot-idx-input', 'dot-idx-label', '.idx', file => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                dotStandaloneIdxText = e.target.result;
+                maybeEnableStandaloneDot();
+            };
+            reader.readAsText(file);
+        });
+
+        function maybeEnableStandaloneDot() {
+            const btn = document.getElementById('dot-load-btn');
+            if (dotStandaloneCoordsBlob && dotStandaloneIdxText) btn.disabled = false;
+        }
+
+        document.getElementById('dot-load-btn').onclick = () => {
+            if (dotStandaloneCoordsBlob && dotStandaloneIdxText) {
+                dotPlot = null;
+                initDotPlot(dotStandaloneCoordsBlob, dotStandaloneIdxText);
+            }
+        };
     </script>
 </body>
 </html>

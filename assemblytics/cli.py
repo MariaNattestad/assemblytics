@@ -8,6 +8,7 @@ import os
 import sys
 import zipfile
 
+from .dot_prep import run as run_dot_prep
 from .dotplot import run as run_dotplot
 from .index import run as run_index
 from .nchart import run as run_nchart
@@ -149,6 +150,20 @@ def run(args):
 
     run_nchart(output_dir)
     print("FILE_READY:assemblytics_nchart.png")
+
+    print("5. Preparing interactive Dot plot")
+    dot_prefix = os.path.join(output_dir, "assemblytics_dot")
+    run_dot_prep(
+        argparse.Namespace(
+            delta=delta,
+            out=dot_prefix,
+            unique_length=unique_length,
+            overview=1000,
+        ),
+        write_delta=False,
+    )
+    print("FILE_READY:assemblytics_dot.coords")
+    print("FILE_READY:assemblytics_dot.coords.idx")
 
     zip_results(output_dir)
     print("FILE_READY:assemblytics_results.zip")
