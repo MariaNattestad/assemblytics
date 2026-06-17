@@ -129,10 +129,16 @@
         .tab-section.active { display: flex; }
 
         /* Dot tab layout */
-        #dot-sidebar {
-            width: 260px; background: #fff; border-right: 1px solid var(--border);
-            padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;
-            flex-shrink: 0;
+        #dot-content { background: #fff; }
+
+        /* Dot empty state */
+        #dot-empty-state {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; height: 100%;
+        }
+        #dot-empty-state > div {
+            width: 360px; padding: 2rem; border: 1px solid var(--border);
+            border-radius: 8px; background: #fafafa;
         }
 
         /* Dot upload area */
@@ -288,25 +294,25 @@
     </div><!-- end #tab-analysis -->
 
     <div id="tab-dot" class="tab-section">
-        <div id="dot-sidebar">
-            <div>
-                <h4 style="margin:0 0 0.75rem;">Load Dot files</h4>
-                <p style="font-size:0.8rem; color:#777; margin:0 0 0.75rem;">
-                    Run Assemblytics to generate these automatically, or load previously prepared files.
-                </p>
-                <div class="dot-dropzone" id="dot-coords-dropzone">
-                    <div id="dot-coords-label">Load .coords file</div>
-                    <input type="file" id="dot-coords-input" style="display:none" accept=".coords">
+        <div id="dot-content">
+            <div id="dot-empty-state">
+                <div>
+                    <h4 style="margin:0 0 0.75rem;">Load Dot files</h4>
+                    <p style="font-size:0.85rem; color:#777; margin:0 0 1rem;">
+                        Run Assemblytics to generate these automatically, or load previously prepared files.
+                    </p>
+                    <div class="dot-dropzone" id="dot-coords-dropzone">
+                        <div id="dot-coords-label">Load .coords file</div>
+                        <input type="file" id="dot-coords-input" style="display:none" accept=".coords">
+                    </div>
+                    <div class="dot-dropzone" id="dot-idx-dropzone" style="margin-top:0.5rem;">
+                        <div id="dot-idx-label">Load .coords.idx file</div>
+                        <input type="file" id="dot-idx-input" style="display:none" accept=".idx">
+                    </div>
+                    <button id="dot-load-btn" style="width:100%; margin-top:0.75rem;" disabled>Load Files</button>
                 </div>
-                <div class="dot-dropzone" id="dot-idx-dropzone" style="margin-top:0.5rem;">
-                    <div id="dot-idx-label">Load .coords.idx file</div>
-                    <input type="file" id="dot-idx-input" style="display:none" accept=".idx">
-                </div>
-                <button id="dot-load-btn" style="width:100%; margin-top:0.75rem;" disabled>Load Files</button>
             </div>
-            <div style="flex:1;"></div>
         </div>
-        <div id="dot-content"></div>
     </div><!-- end #tab-dot -->
     </main>
 
@@ -367,6 +373,30 @@
                 reader.readAsBinaryString(blob.slice(startByte, endByte));
                 reader.onload = e => asyncCallback(e.target.result);
             };
+        }
+
+        function showDotEmptyState() {
+            const content = document.getElementById('dot-content');
+            content.innerHTML = '';
+            const empty = document.createElement('div');
+            empty.id = 'dot-empty-state';
+            empty.innerHTML = `<div>
+                <h4 style="margin:0 0 0.75rem;">Load Dot files</h4>
+                <p style="font-size:0.85rem; color:#777; margin:0 0 1rem;">
+                    Run Assemblytics to generate these automatically, or load previously prepared files.
+                </p>
+                <div class="dot-dropzone" id="dot-coords-dropzone">
+                    <div id="dot-coords-label">Load .coords file</div>
+                    <input type="file" id="dot-coords-input" style="display:none" accept=".coords">
+                </div>
+                <div class="dot-dropzone" id="dot-idx-dropzone" style="margin-top:0.5rem;">
+                    <div id="dot-idx-label">Load .coords.idx file</div>
+                    <input type="file" id="dot-idx-input" style="display:none" accept=".idx">
+                </div>
+                <button id="dot-load-btn" style="width:100%; margin-top:0.75rem;" disabled>Load Files</button>
+            </div>`;
+            content.appendChild(empty);
+            setupDotUI();
         }
 
         function initDotApp(coordsBlob, indexText) {
@@ -637,7 +667,7 @@
             dotCoordsData = null;
             dotIdxText = null;
             dotApp = null;
-            document.getElementById('dot-content').innerHTML = '';
+            showDotEmptyState();
             ui.openInDotBtn.style.display = 'none';
 
             log(`--- Starting Pipeline for ${selectedFileName} ---`);
@@ -753,36 +783,39 @@
             };
         }
 
-        setupDotDropzone('dot-coords-dropzone', 'dot-coords-input', 'dot-coords-label', '.coords', file => {
-            const reader = new FileReader();
-            reader.onload = e => {
-                dotStandaloneCoordsBlob = new Blob([e.target.result]);
-                maybeEnableStandaloneDot();
-            };
-            reader.readAsArrayBuffer(file);
-        });
+        function setupDotUI() {
+            setupDotDropzone('dot-coords-dropzone', 'dot-coords-input', 'dot-coords-label', '.coords', file => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    dotStandaloneCoordsBlob = new Blob([e.target.result]);
+                    maybeEnableStandaloneDot();
+                };
+                reader.readAsArrayBuffer(file);
+            });
 
-        setupDotDropzone('dot-idx-dropzone', 'dot-idx-input', 'dot-idx-label', '.idx', file => {
-            const reader = new FileReader();
-            reader.onload = e => {
-                dotStandaloneIdxText = e.target.result;
-                maybeEnableStandaloneDot();
+            setupDotDropzone('dot-idx-dropzone', 'dot-idx-input', 'dot-idx-label', '.idx', file => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    dotStandaloneIdxText = e.target.result;
+                    maybeEnableStandaloneDot();
+                };
+                reader.readAsText(file);
+            });
+
+            document.getElementById('dot-load-btn').onclick = () => {
+                if (dotStandaloneCoordsBlob && dotStandaloneIdxText) {
+                    dotApp = null;
+                    initDotApp(dotStandaloneCoordsBlob, dotStandaloneIdxText);
+                }
             };
-            reader.readAsText(file);
-        });
+        }
 
         function maybeEnableStandaloneDot() {
             const btn = document.getElementById('dot-load-btn');
-            if (dotStandaloneCoordsBlob && dotStandaloneIdxText) btn.disabled = false;
+            if (btn && dotStandaloneCoordsBlob && dotStandaloneIdxText) btn.disabled = false;
         }
 
-        document.getElementById('dot-load-btn').onclick = () => {
-            if (dotStandaloneCoordsBlob && dotStandaloneIdxText) {
-                dotApp = null;
-                document.getElementById('dot-content').innerHTML = '';
-                initDotApp(dotStandaloneCoordsBlob, dotStandaloneIdxText);
-            }
-        };
+        setupDotUI();
     </script>
 </body>
 </html>
