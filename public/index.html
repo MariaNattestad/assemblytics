@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@4.6.3/papaparse.min.js"></script>
     <script src="MultiSegmentScale.js"></script>
     <script>function showSpinner() {}</script>
+    <script src="SuperUI.js"></script>
     <script src="Dot.js"></script>
     <style>
         :root {
@@ -133,12 +134,6 @@
             padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;
             flex-shrink: 0;
         }
-        #dot-content {
-            flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff;
-        }
-        #dot-plot-container {
-            flex: 1; position: relative; overflow: hidden;
-        }
 
         /* Dot upload area */
         .dot-dropzone {
@@ -153,6 +148,32 @@
             border: 1px solid #7ec8e3; margin-top: 0.5rem;
         }
         #open-in-dot-btn:hover { background: #2a2a4e; }
+
+        /* Minimal Bootstrap 3 compat for SuperUI */
+        .btn { display:inline-block; padding:2px 8px; border-radius:3px; cursor:pointer; border:1px solid #ccc; background:#f8f8f8; color:#333; font-size:0.78rem; font-weight:normal; }
+        .btn-default:hover { background:#e8e8e8; }
+        .btn-xs { padding:1px 5px; font-size:0.72rem; }
+        .form-control { display:block; width:100%; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-size:0.85rem; box-sizing:border-box; }
+
+        /* DotApp layout */
+        #dot-content { flex:1; overflow:auto; }
+        #dot-content #mainLeft { overflow: visible; }
+        #dot-content #dotplot canvas, #dot-content #dotplot svg { display:block; }
+        #dot-content #action_panel button { width:100%; margin:3px 0; }
+        #dot-content #UI_container { margin-top:1rem; }
+        .d3-superUI-table { border-spacing:0; width:100%; font-size:0.82rem; }
+        .d3-superUI-table th, .d3-superUI-table td { padding:3px 4px; border-bottom:1px solid #eee; }
+        .d3-superUI-table input[type="number"], .d3-superUI-table input[type="text"] { width:100%; padding:2px 4px; border:1px solid #ccc; border-radius:2px; box-sizing:border-box; }
+        .d3-superUI-table input[type="color"] { width:100%; height:24px; padding:1px; border:1px solid #ccc; cursor:pointer; }
+        .d3-superUI-table input[type="range"] { width:100%; }
+        .d3-superUI-table select { width:100%; }
+        .d3-superUI-table .superUI-section-header { padding-top:0.75rem; font-weight:bold; font-size:0.8rem; color:#555; background:#f9f9f9; }
+        .d3-superUI-table .superUI-value { width:80px; }
+        #dot-content #inspectorArea { margin-top:1rem; }
+        #dot-content #inspectorArea textarea { width:100%; font-size:0.78rem; }
+        #dot-content #linkOutArea { margin-top:0.75rem; font-size:0.82rem; }
+        #dot-content #linkOutArea input { border:1px solid #ccc; border-radius:3px; padding:2px 5px; }
+        #dot-content #linkOutArea a { display:block; margin-top:3px; }
     </style>
 </head>
 <body>
@@ -283,16 +304,9 @@
                 </div>
                 <button id="dot-load-btn" style="width:100%; margin-top:0.75rem;" disabled>Load Files</button>
             </div>
-            <div id="dot-memory-bar" style="display:none; flex-direction:column; gap:0.4rem;">
-                <div style="font-size:0.78rem; font-weight:600; color:#555; border-top:1px solid #eee; padding-top:0.75rem;">Load alignments</div>
-                <button id="load-unique-btn" style="background:#007acc; font-size:0.78rem; padding:0.3rem 0.6rem;">Load unique</button>
-                <button id="load-rep-btn" style="background:#e57373; font-size:0.78rem; padding:0.3rem 0.6rem;">Load repetitive</button>
-            </div>
             <div style="flex:1;"></div>
         </div>
-        <div id="dot-content">
-            <div id="dot-plot-container"></div>
-        </div>
+        <div id="dot-content"></div>
     </div><!-- end #tab-dot -->
     </main>
 
@@ -304,7 +318,7 @@
         let dotIdxText = null;       // string of .coords.idx file from pipeline
         let dotStandaloneCoordsBlob = null;
         let dotStandaloneIdxText = null;
-        let dotPlot = null;
+        let dotApp = null;
 
         const ui = {
             log: document.getElementById('log'),
@@ -346,28 +360,7 @@
 
         ui.openInDotBtn.onclick = switchToDotTab;
 
-        // --- DotPlot parent shim ---
-        const dotParent = {
-            updateMemoryButtons: function(memUnique, memRepetitive) {
-                const bar = document.getElementById('dot-memory-bar');
-                const uBtn = document.getElementById('load-unique-btn');
-                const rBtn = document.getElementById('load-rep-btn');
-                const fmt = b => b > 0 ? (b / 1024 / 1024).toFixed(1) + ' MB' : null;
-                const uLabel = fmt(memUnique);
-                const rLabel = fmt(memRepetitive);
-                if (uLabel) { uBtn.textContent = `Load unique (${uLabel})`; uBtn.disabled = false; }
-                else { uBtn.textContent = 'Unique loaded'; uBtn.disabled = true; }
-                if (rLabel) { rBtn.textContent = `Load repetitive (${rLabel})`; rBtn.disabled = false; }
-                else { rBtn.textContent = 'Repetitive loaded'; rBtn.disabled = true; }
-                bar.style.display = 'flex';
-            },
-            updateLinkPositions: function() {},
-        };
-
-        document.getElementById('load-unique-btn').onclick = () => dotPlot && dotPlot.loadAllInView('unique');
-        document.getElementById('load-rep-btn').onclick = () => dotPlot && dotPlot.loadAllInView('repetitive');
-
-        // --- DotPlot initialization ---
+        // --- DotApp initialization ---
         function makeRandomAccess(blob) {
             return function(startByte, endByte, asyncCallback) {
                 const reader = new FileReader();
@@ -376,34 +369,21 @@
             };
         }
 
-        let dotResizeObserver = null;
-
-        function initDotPlot(coordsBlob, indexText) {
-            const container = document.getElementById('dot-plot-container');
+        function initDotApp(coordsBlob, indexText) {
+            const container = document.getElementById('dot-content');
             container.innerHTML = '';
-            const w = container.clientWidth;
-            const h = container.clientHeight;
-            const el = d3.select('#dot-plot-container');
-            dotPlot = new DotPlot(el, { width: w, height: h, parent: dotParent });
-            dotPlot.setCoords(makeRandomAccess(coordsBlob), indexText);
-
-            if (dotResizeObserver) dotResizeObserver.disconnect();
-            dotResizeObserver = new ResizeObserver(() => {
-                if (!dotPlot) return;
-                const w2 = container.clientWidth;
-                const h2 = container.clientHeight;
-                dotPlot.state.layout.whole = { width: w2, height: h2 };
-                dotPlot.layoutPlot();
-                dotPlot.draw();
-            });
-            dotResizeObserver.observe(container);
+            const w = container.clientWidth || 900;
+            const h = Math.max(container.clientHeight || 600, 500);
+            const el = d3.select('#dot-content');
+            dotApp = new DotApp(el, { width: w, height: h });
+            dotApp.setCoords(makeRandomAccess(coordsBlob), indexText);
         }
 
         function onDotTabActivated() {
-            if (dotPlot) return; // already initialized
+            if (dotApp) return; // already initialized
             if (dotCoordsData && dotIdxText) {
                 const blob = new Blob([dotCoordsData]);
-                initDotPlot(blob, dotIdxText);
+                initDotApp(blob, dotIdxText);
             }
         }
 
@@ -656,10 +636,9 @@
             results_cache.length = 0;
             dotCoordsData = null;
             dotIdxText = null;
-            dotPlot = null;
+            dotApp = null;
+            document.getElementById('dot-content').innerHTML = '';
             ui.openInDotBtn.style.display = 'none';
-            document.getElementById('dot-memory-bar').style.display = 'none';
-            document.getElementById('dot-plot-container').innerHTML = '';
 
             log(`--- Starting Pipeline for ${selectedFileName} ---`);
 
@@ -799,8 +778,9 @@
 
         document.getElementById('dot-load-btn').onclick = () => {
             if (dotStandaloneCoordsBlob && dotStandaloneIdxText) {
-                dotPlot = null;
-                initDotPlot(dotStandaloneCoordsBlob, dotStandaloneIdxText);
+                dotApp = null;
+                document.getElementById('dot-content').innerHTML = '';
+                initDotApp(dotStandaloneCoordsBlob, dotStandaloneIdxText);
             }
         };
     </script>
