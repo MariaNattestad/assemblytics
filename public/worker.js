@@ -7,33 +7,16 @@ const readyPromise = new Promise(resolve => resolveReady = resolve);
 async function init() {
     try {
         pyodide = await loadPyodide();
-        await pyodide.loadPackage(["numpy", "pandas", "matplotlib"]);
-        
+        await pyodide.loadPackage(["numpy", "pandas", "matplotlib", "micropip"]);
+
         await pyodide.runPythonAsync(`
 import matplotlib
 matplotlib.use('Agg')
-import os, sys, warnings
+import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
-if os.getcwd() not in sys.path:
-    sys.path.append(os.getcwd())
+import micropip
+await micropip.install('./assemblytics-2.0.0-py3-none-any.whl')
         `);
-
-        // Fetch and mount the assemblytics package directly in the worker
-        const packageFiles = [
-            '__init__.py', 'uniq_anchor.py', 'variants.py',
-            'index.py', 'summary.py',
-            'variant_charts.py', 'dotplot.py', 'nchart.py', 'cli.py'
-        ];
-
-        pyodide.FS.mkdir('assemblytics');
-        for (const file of packageFiles) {
-            const response = await fetch(`./assemblytics/${file}`);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch assemblytics/${file}: ${response.status} ${response.statusText}`);
-            }
-            const content = await response.text();
-            pyodide.FS.writeFile(`assemblytics/${file}`, content);
-        }
 
         self.postMessage({ type: 'status', message: 'Environment Ready' });
         resolveReady();

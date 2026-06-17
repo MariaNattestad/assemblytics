@@ -146,3 +146,15 @@ cd assemblytics
 python3 -m http.server 8000 --directory public
 # Then open http://localhost:8000 in your browser
 ```
+
+## Development instructions
+
+The Python source lives in `assemblytics/` at the repo root. The web app loads it as a Python wheel (`public/assemblytics-2.0.0-py3-none-any.whl`) installed at runtime by Pyodide's `micropip`.
+
+After editing any Python files under `assemblytics/`, rebuild the wheel before testing or deploying:
+
+```bash
+make wheel
+```
+
+This runs `python3 -m build --wheel` and copies the result into `public/`. If you bump the version in `pyproject.toml`, also update the filename on line 18 of `public/worker.js` to match.

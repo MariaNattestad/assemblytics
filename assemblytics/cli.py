@@ -30,37 +30,6 @@ def fail(log_file, step, message, exit_code=1):
     sys.exit(exit_code)
 
 
-def format_column_table(lines):
-    if not lines:
-        return ""
-    # Split lines into fields
-    table = [line.split("\t") for line in lines]
-    # Calculate max width for each column
-    num_cols = max(len(row) for row in table)
-    col_widths = [0] * num_cols
-    for row in table:
-        for i, field in enumerate(row):
-            col_widths[i] = max(col_widths[i], len(field))
-
-    # Format rows
-    formatted_rows = []
-    for row in table:
-        formatted_row = "  ".join(field.ljust(col_widths[i]) for i, field in enumerate(row))
-        formatted_rows.append(formatted_row)
-    return "\n".join(formatted_rows) + "\n"
-
-
-def write_variant_preview(output_dir, num_lines=10):
-    bed_path = os.path.join(output_dir, "assemblytics_structural_variants.bed")
-    preview_path = os.path.join(output_dir, "assemblytics_variant_preview.txt")
-    with open(bed_path) as bed:
-        preview_lines = [line.rstrip("\n") for index, line in enumerate(bed) if index < num_lines]
-
-    formatted_preview = format_column_table(preview_lines)
-    with open(preview_path, "w") as preview:
-        preview.write(formatted_preview)
-
-
 def zip_results(output_dir):
     zip_path = os.path.join(output_dir, "assemblytics_results.zip")
     zip_filename = os.path.basename(zip_path)
@@ -166,9 +135,7 @@ def run(args):
         )
     )
     run_summary_to_file(output_dir, minimum_size, maximum_size)
-    write_variant_preview(output_dir)
     print("FILE_READY:assemblytics_structural_variants_summary.txt")
-    print("FILE_READY:assemblytics_variant_preview.txt")
 
     print("4. Generating figures")
     run_variant_charts(output_dir, minimum_size, maximum_size)

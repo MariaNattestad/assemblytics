@@ -100,7 +100,7 @@
             position: absolute; top: 0.75rem; right: 0.75rem; background: rgba(255,255,255,0.9);
             border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center;
             justify-content: center; text-decoration: none; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            font-size: 0.9rem;
+            color: #666;
         }
     </style>
 </head>
@@ -510,12 +510,14 @@
             ui.zipDownload.innerHTML = `
                 <div class="zip-label">
                     <strong>📦 All results (recommended)</strong>
-                    Includes every file below in one download.
+                    Bundles all the files below and images above into a single ZIP archive for easy download and sharing.
                 </div>
                 <a class="zip-button" href="${url}" download="${name}">Download ${name}</a>
             `;
             ui.zipDownload.style.display = 'flex';
         }
+
+        const DOWNLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg>`;
 
         function displayResult(name, data) {
             if (name.endsWith('.png')) {
@@ -524,7 +526,7 @@
 
                 const card = document.createElement('div');
                 card.className = 'card plot-card';
-                card.innerHTML = `<h4>📊 ${name}</h4><img src="${url}"><a class="download-icon" href="${url}" download="${name}" title="Download ${name}">💾</a>`;
+                card.innerHTML = `<h4>${name}</h4><img src="${url}"><a class="download-icon" href="${url}" download="${name}" title="Download ${name}">${DOWNLOAD_ICON}</a>`;
                 ui.plots.appendChild(card);
             } else if (name === 'assemblytics_structural_variants_summary.txt') {
                 const decoder = new TextDecoder();
@@ -549,7 +551,8 @@
                 link.download = name;
                 link.className = 'badge';
                 link.style.textDecoration = 'none';
-                link.textContent = `💾 ${name}`;
+                link.style.color = '#666';
+                link.innerHTML = `${DOWNLOAD_ICON} ${name}`;
                 ui.fileList.appendChild(link);
             }
         }
