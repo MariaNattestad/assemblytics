@@ -709,12 +709,12 @@
             if (name === 'assemblytics_dot.coords') {
                 dotCoordsData = data;
                 maybeEnableDotButton();
-                return;
+                // fall through to also create a download badge
             }
             if (name === 'assemblytics_dot.coords.idx') {
                 dotIdxText = new TextDecoder().decode(data);
                 maybeEnableDotButton();
-                return;
+                // fall through to also create a download badge
             }
             if (name.endsWith('.png')) {
                 const blob = new Blob([data], { type: 'image/png' });
