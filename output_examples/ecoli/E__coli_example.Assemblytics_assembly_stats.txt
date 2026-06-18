@@ -1,0 +1,16 @@
+Reference: GCF_000005845.2_ASM584v2_genomic.fna
+Number of sequences: 1
+Total sequence length: 4.64 Mbp
+Mean: 4.64 Mbp
+Min: 4.64 Mbp
+Max: 4.64 Mbp
+N50: 4.64 Mbp
+
+
+Query: GCF_000801205.1_ASM80120v1_genomic.fna
+Number of sequences: 1
+Total sequence length: 4.64 Mbp
+Mean: 4.64 Mbp
+Min: 4.64 Mbp
+Max: 4.64 Mbp
+N50: 4.64 Mbp

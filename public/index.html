@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assemblytics - Serverless Variant Detection</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@4.13.0/build/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ramda@0.25.0/dist/ramda.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@4.6.3/papaparse.min.js"></script>
+    <script src="MultiSegmentScale.js"></script>
+    <script>function showSpinner() {}</script>
+    <script src="SuperUI.js"></script>
+    <script src="Dot.js"></script>
+    <style>
+        :root {
+            --primary: #007acc;
+            --bg: #f8f9fa;
+            --text: #333;
+            --border: #ddd;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; padding: 0; color: var(--text); background: var(--bg);
+            display: flex; flex-direction: column; height: 100vh;
+        }
+        header {
+            background: #fff; border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
+        }
+        main {
+            display: flex; flex: 1; overflow: hidden;
+        }
+        #sidebar {
+            width: 350px; background: #fff; border-right: 1px solid var(--border);
+            padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column;
+            gap: 1.5rem;
+        }
+        #content {
+            flex: 1; padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; gap: 2rem;
+        }
+        .card {
+            background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        h1, h2, h3, h4 { margin-top: 0; }
+        
+        /* Form elements */
+        .field { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        label { font-weight: 600; font-size: 0.9rem; color: #555; }
+        input[type="number"] {
+            padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; font-size: 1rem;
+        }
+        .help-text { font-size: 0.8rem; color: #777; font-style: italic; }
+        
+        #dropzone {
+            border: 2px dashed var(--border); border-radius: 8px; padding: 2rem;
+            text-align: center; cursor: pointer; transition: border-color 0.2s;
+            background: #fafafa;
+        }
+        #dropzone.active { border-color: var(--primary); background: #eef7ff; }
+        
+        button {
+            background: var(--primary); color: white; border: none; padding: 0.8rem 1.5rem;
+            border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        #log { 
+            background: #1e1e1e; color: #d4d4d4; padding: 1rem; 
+            border-radius: 4px; height: 200px; overflow-y: auto;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.85rem; white-space: pre-wrap;
+        }
+        .plot-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;
+        }
+        .plot-card img { width: 100%; height: auto; border-radius: 4px; }
+        .plot-card h4 { margin-bottom: 0.5rem; font-size: 0.9rem; }
+        
+        .badge {
+            background: #e1f5fe; color: #01579b; padding: 2px 8px; border-radius: 12px;
+            font-size: 0.75rem; font-weight: bold; margin-left: 5px;
+        }
+
+        #sample-banner {
+            background: #eef7ff; border: 1px solid #b8e0ff; border-radius: 6px;
+            padding: 0.6rem 1rem; font-size: 0.85rem; color: #1565c0; margin-bottom: 1rem;
+        }
+        #sample-banner b { color: #0d3d6b; }
+
+        #zip-download {
+            background: #e8f5e9; border: 2px solid #43a047; border-radius: 8px;
+            padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1rem;
+        }
+        #zip-download .zip-label { font-size: 0.9rem; color: #2e7d32; }
+        #zip-download .zip-label strong { display: block; font-size: 1rem; margin-bottom: 0.2rem; }
+        #zip-download a.zip-button {
+            background: #2e7d32; color: white; text-decoration: none; padding: 0.6rem 1.2rem;
+            border-radius: 4px; font-weight: bold; font-size: 0.9rem;
+        }
+
+        .plot-card { position: relative; }
+        .plot-card .download-icon {
+            position: absolute; top: 0.75rem; right: 0.75rem; background: rgba(255,255,255,0.9);
+            border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center;
+            justify-content: center; text-decoration: none; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            color: #666;
+        }
+
+        /* Tab bar */
+        #tab-bar {
+            background: #fff; border-bottom: 1px solid var(--border);
+            display: flex; gap: 0; padding: 0 2rem;
+        }
+        .tab-btn {
+            background: none; border: none; border-bottom: 3px solid transparent;
+            color: #777; padding: 0.6rem 1.2rem; font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; border-radius: 0; transition: color 0.15s, border-color 0.15s;
+            margin-bottom: -1px;
+        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Tab sections */
+        .tab-section { display: none; flex: 1; overflow: hidden; }
+        .tab-section.active { display: flex; }
+
+        /* Dot tab layout */
+        #dot-content { background: #fff; }
+
+        /* Dot empty state */
+        #dot-empty-state {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; height: 100%;
+        }
+        #dot-empty-state > div {
+            width: 360px; padding: 2rem; border: 1px solid var(--border);
+            border-radius: 8px; background: #fafafa;
+        }
+
+        /* Dot upload area */
+        .dot-dropzone {
+            border: 2px dashed var(--border); border-radius: 6px; padding: 0.8rem;
+            text-align: center; cursor: pointer; background: #fafafa; font-size: 0.8rem;
+        }
+        .dot-dropzone.loaded { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; }
+
+        /* Open in Dot button */
+        #open-in-dot-btn {
+            display: none; width: 100%; background: #1a1a2e; color: #7ec8e3;
+            border: 1px solid #7ec8e3; margin-top: 0.5rem;
+        }
+        #open-in-dot-btn:hover { background: #2a2a4e; }
+
+        /* Minimal Bootstrap 3 compat for SuperUI */
+        .btn { display:inline-block; padding:2px 8px; border-radius:3px; cursor:pointer; border:1px solid #ccc; background:#f8f8f8; color:#333; font-size:0.78rem; font-weight:normal; }
+        .btn-default:hover { background:#e8e8e8; }
+        .btn-xs { padding:1px 5px; font-size:0.72rem; }
+        .form-control { display:block; width:100%; padding:3px 6px; border:1px solid #ccc; border-radius:3px; font-size:0.85rem; box-sizing:border-box; }
+
+        /* DotApp layout */
+        #dot-content { flex:1; overflow:auto; }
+        #dot-content #mainLeft { overflow: visible; }
+        #dot-content #dotplot canvas, #dot-content #dotplot svg { display:block; }
+        #dot-content #action_panel button { width:100%; margin:3px 0; }
+        #dot-content #UI_container { margin-top:1rem; }
+        .d3-superUI-table { border-spacing:0; width:100%; font-size:0.82rem; }
+        .d3-superUI-table th, .d3-superUI-table td { padding:3px 4px; border-bottom:1px solid #eee; }
+        .d3-superUI-table input[type="number"], .d3-superUI-table input[type="text"] { width:100%; padding:2px 4px; border:1px solid #ccc; border-radius:2px; box-sizing:border-box; }
+        .d3-superUI-table input[type="color"] { width:100%; height:24px; padding:1px; border:1px solid #ccc; cursor:pointer; }
+        .d3-superUI-table input[type="range"] { width:100%; }
+        .d3-superUI-table select { width:100%; }
+        .d3-superUI-table .superUI-section-header { padding-top:0.75rem; font-weight:bold; font-size:0.8rem; color:#555; background:#f9f9f9; }
+        .d3-superUI-table .superUI-value { width:80px; }
+        #dot-content #inspectorArea { margin-top:1rem; }
+        #dot-content #inspectorArea textarea { width:100%; font-size:0.78rem; }
+        #dot-content #linkOutArea { margin-top:0.75rem; font-size:0.82rem; }
+        #dot-content #linkOutArea input { border:1px solid #ccc; border-radius:3px; padding:2px 5px; }
+        #dot-content #linkOutArea a { display:block; margin-top:3px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h2 style="margin:0; color: var(--primary);">Assemblytics <span style="font-weight: 200; font-size: 0.8em; color: #999;">Serverless Edition</span></h2>
+        </div>
+        <div id="runtime-status" class="help-text">Initializing Worker...</div>
+    </header>
+    <div id="tab-bar">
+        <button class="tab-btn active" data-tab="analysis">Analysis</button>
+        <button class="tab-btn" data-tab="dot">Dot</button>
+    </div>
+
+    <main style="display:contents;">
+    <div id="tab-analysis" class="tab-section active">
+        <div id="sidebar">
+            <div id="upload-section">
+                <h4>1. Input Data</h4>
+                <div id="dropzone">
+                    <div id="dz-text">📁 Drop .delta or .delta.gz file here<br><small>or click to browse</small></div>
+                    <input type="file" id="fileInput" style="display:none" accept=".delta,.gz">
+                </div>
+                <div id="file-ready-msg" style="display:none; color: #2e7d32; font-size: 0.85rem; font-weight: bold; margin-top: 0.5rem;">
+                    ✅ File loaded and ready
+                </div>
+                <div id="file-info" style="margin-top:0.5rem; font-size:0.85rem; display:none;">
+                    Selected: <span id="filename" style="font-weight:bold"></span>
+                </div>
+                <div style="margin-top:1rem;">
+                    <button id="useSampleBtn" style="background:#6c757d; font-size:0.8rem; padding: 0.4rem 0.8rem;">Use Drosophila Sample</button>
+                </div>
+            </div>
+
+            <div id="params-section">
+                <h4>2. Parameters</h4>
+                <div class="field">
+                    <label>Unique Anchor Length (bp)</label>
+                    <input type="number" id="unique_length" value="10000">
+                    <div class="help-text">Minimum length of unique sequence required to anchor an alignment. Consider decreasing for small (e.g. bacterial) genomes.</div>
+                </div>
+                <div class="field">
+                    <label>Min Variant Size (bp)</label>
+                    <input type="number" id="min_size" value="50">
+                    <div class="help-text">Smallest structural variant to report.</div>
+                </div>
+                <div class="field">
+                    <label>Max Variant Size (bp)</label>
+                    <input type="number" id="max_size" value="10000">
+                    <div class="help-text">Largest structural variant to report.</div>
+                </div>
+            </div>
+
+            <div id="action-section">
+                <button id="runBtn" style="width:100%" disabled>Readying Environment...</button>
+                <button id="open-in-dot-btn">Open in Dot →</button>
+            </div>
+            
+            <div style="font-size:0.75rem; margin-top:0.75rem; display:flex; gap:1rem;">
+                <a href="https://github.com/MariaNattestad/Assemblytics" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://www.ncbi.nlm.nih.gov/pubmed/27318204" target="_blank" rel="noopener">Cite paper</a>
+            </div>
+
+            <div style="flex:1"></div>
+
+            <div class="help-text" style="font-size:0.75rem; border-top:1px solid #eee; padding-top:1rem;">
+                Privacy: All processing happens in your browser memory via Web Workers. Your data never leaves your computer.
+            </div>
+        </div>
+
+        <div id="content">
+            <div id="results-area" style="display:none;">
+                <div id="sample-banner" style="display:none;"></div>
+
+                <div class="card">
+                    <h3>Analysis Progress</h3>
+                    <div id="log"></div>
+                </div>
+
+                <div id="summary-container" style="margin-top: 1rem; display:none;">
+                    <h3>Summary Statistics</h3>
+                    <div id="summary-stats" class="plot-grid"></div>
+                </div>
+
+                <div id="plots-container" style="margin-top: 2rem;">
+                    <h3>Visualizations</h3>
+                    <div id="plots" class="plot-grid"></div>
+                </div>
+                
+                <div id="downloads-container" style="margin-top: 2rem;">
+                    <h3>Files</h3>
+                    <div id="zip-download" style="display:none;"></div>
+                    <div id="file-list" style="display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
+                </div>
+            </div>
+            
+            <div id="intro-area" class="card">
+                <h2>Welcome to Assemblytics</h2>
+                <p>Assemblytics detects structural variants from an assembly aligned to a reference genome. This version runs entirely in your web browser using WebAssembly and Web Workers.</p>
+                <h3>How to use:</h3>
+                <ol>
+                    <li>Generate a <code>.delta</code> file using MUMmer's <code>nucmer</code>:
+                        <pre style="background: #f0f0f0; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 0.85rem;">nucmer -maxmatch -l 100 -c 500 REFERENCE.fa ASSEMBLY.fa -prefix OUT</pre>
+                    </li>
+                    <li>Drop the <code>OUT.delta</code> (or <code>OUT.delta.gz</code>) file on the left sidebar.</li>
+                    <li>Adjust parameters if needed (defaults are usually fine for most genomes).</li>
+                    <li>Click <strong>Run Analysis</strong>.</li>
+                </ol>
+                <p>No software installation is required, and your data remains private.</p>
+            </div>
+        </div>
+    </div><!-- end #tab-analysis -->
+
+    <div id="tab-dot" class="tab-section">
+        <div id="dot-content">
+            <div id="dot-empty-state">
+                <div>
+                    <h4 style="margin:0 0 0.75rem;">Load Dot files</h4>
+                    <p style="font-size:0.85rem; color:#777; margin:0 0 1rem;">
+                        Run Assemblytics to generate these automatically, or load previously prepared files.
+                    </p>
+                    <div class="dot-dropzone" id="dot-coords-dropzone">
+                        <div id="dot-coords-label">Load .coords file</div>
+                        <input type="file" id="dot-coords-input" style="display:none" accept=".coords">
+                    </div>
+                    <div class="dot-dropzone" id="dot-idx-dropzone" style="margin-top:0.5rem;">
+                        <div id="dot-idx-label">Load .coords.idx file</div>
+                        <input type="file" id="dot-idx-input" style="display:none" accept=".idx">
+                    </div>
+                    <button id="dot-load-btn" style="width:100%; margin-top:0.75rem;" disabled>Load Files</button>
+                </div>
+            </div>
+        </div>
+    </div><!-- end #tab-dot -->
+    </main>
+
+    <script type="text/javascript">
+        const worker = new Worker('worker.js');
+        let selectedFileData = null;
+        let selectedFileName = null;
+        let dotCoordsData = null;    // Uint8Array of .coords file from pipeline
+        let dotIdxText = null;       // string of .coords.idx file from pipeline
+        let dotStandaloneCoordsBlob = null;
+        let dotStandaloneIdxText = null;
+        let dotApp = null;
+
+        const ui = {
+            log: document.getElementById('log'),
+            runBtn: document.getElementById('runBtn'),
+            plots: document.getElementById('plots'),
+            status: document.getElementById('runtime-status'),
+            dropzone: document.getElementById('dropzone'),
+            fileInput: document.getElementById('fileInput'),
+            fileInfo: document.getElementById('file-info'),
+            filename: document.getElementById('filename'),
+            fileReadyMsg: document.getElementById('file-ready-msg'),
+            resultsArea: document.getElementById('results-area'),
+            introArea: document.getElementById('intro-area'),
+            fileList: document.getElementById('file-list'),
+            zipDownload: document.getElementById('zip-download'),
+            sampleBanner: document.getElementById('sample-banner'),
+            useSampleBtn: document.getElementById('useSampleBtn'),
+            openInDotBtn: document.getElementById('open-in-dot-btn'),
+        };
+
+        // --- Tab switching ---
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+                if (btn.dataset.tab === 'dot') onDotTabActivated();
+            });
+        });
+
+        function switchToDotTab() {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+            document.querySelector('[data-tab="dot"]').classList.add('active');
+            document.getElementById('tab-dot').classList.add('active');
+            onDotTabActivated();
+        }
+
+        ui.openInDotBtn.onclick = switchToDotTab;
+
+        // --- DotApp initialization ---
+        function makeRandomAccess(blob) {
+            return function(startByte, endByte, asyncCallback) {
+                const reader = new FileReader();
+                reader.readAsBinaryString(blob.slice(startByte, endByte));
+                reader.onload = e => asyncCallback(e.target.result);
+            };
+        }
+
+        function showDotEmptyState() {
+            const content = document.getElementById('dot-content');
+            content.innerHTML = '';
+            const empty = document.createElement('div');
+            empty.id = 'dot-empty-state';
+            empty.innerHTML = `<div>
+                <h4 style="margin:0 0 0.75rem;">Load Dot files</h4>
+                <p style="font-size:0.85rem; color:#777; margin:0 0 1rem;">
+                    Run Assemblytics to generate these automatically, or load previously prepared files.
+                </p>
+                <div class="dot-dropzone" id="dot-coords-dropzone">
+                    <div id="dot-coords-label">Load .coords file</div>
+                    <input type="file" id="dot-coords-input" style="display:none" accept=".coords">
+                </div>
+                <div class="dot-dropzone" id="dot-idx-dropzone" style="margin-top:0.5rem;">
+                    <div id="dot-idx-label">Load .coords.idx file</div>
+                    <input type="file" id="dot-idx-input" style="display:none" accept=".idx">
+                </div>
+                <button id="dot-load-btn" style="width:100%; margin-top:0.75rem;" disabled>Load Files</button>
+            </div>`;
+            content.appendChild(empty);
+            setupDotUI();
+        }
+
+        function initDotApp(coordsBlob, indexText) {
+            const container = document.getElementById('dot-content');
+            container.innerHTML = '';
+            const w = container.clientWidth || 900;
+            const h = Math.max(container.clientHeight || 600, 500);
+            const el = d3.select('#dot-content');
+            dotApp = new DotApp(el, { width: w, height: h });
+            dotApp.setCoords(makeRandomAccess(coordsBlob), indexText);
+        }
+
+        function onDotTabActivated() {
+            if (dotApp) return; // already initialized
+            if (dotCoordsData && dotIdxText) {
+                const blob = new Blob([dotCoordsData]);
+                initDotApp(blob, dotIdxText);
+            }
+        }
+
+        function log(msg, type='info') {
+            const entry = document.createElement('div');
+            if (type === 'error') entry.style.color = '#f44336';
+            if (type === 'python') entry.style.color = '#9cdcfe';
+            entry.textContent = msg;
+            ui.log.appendChild(entry);
+            ui.log.scrollTop = ui.log.scrollHeight;
+        }
+
+        const results_cache = [];
+
+        worker.onmessage = async (e) => {
+            const data = e.data;
+            switch (data.type) {
+                case 'status':
+                    ui.status.textContent = data.message;
+                    if (data.message === 'Environment Ready') {
+                        ui.runBtn.disabled = false;
+                        ui.runBtn.textContent = "🚀 Run Analysis";
+                    }
+                    break;
+                case 'log':
+                    log(data.message, data.stream);
+                    break;
+                case 'file_ready':
+                    results_cache.push({ name: data.name, data: data.data });
+                    displayResult(data.name, data.data);
+                    break;
+                case 'error':
+                    log(data.message, 'error');
+                    ui.runBtn.disabled = false;
+                    ui.runBtn.textContent = "🚀 Run Analysis";
+                    break;
+                case 'done':
+                    log("--- Analysis Complete ---");
+                    ui.runBtn.disabled = false;
+                    ui.runBtn.textContent = "🚀 Run Analysis";
+                    break;
+            }
+        };
+
+        function parseSummary(text) {
+            const lines = text.split('\n');
+            const summary = {
+                variants: [],
+                totals: {}
+            };
+            
+            let currentType = null;
+            let currentData = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                if (line.startsWith('Total number of all variants:')) {
+                    summary.totals.allCount = line.split(':')[1].trim();
+                } else if (line.startsWith('Total bases affected by all variants:')) {
+                    summary.totals.allBases = line.split(':')[1].trim();
+                } else if (line.startsWith('Total number of structural variants:')) {
+                    summary.totals.svCount = line.split(':')[1].trim();
+                } else if (line.startsWith('Total bases affected by structural variants:')) {
+                    summary.totals.svBases = line.split(':')[1].trim();
+                } else if (!line.includes(',') && !line.includes(':') && !line.includes('Count')) {
+                    // New variant type
+                    if (currentType) {
+                        summary.variants.push({ type: currentType, data: currentData });
+                    }
+                    currentType = line;
+                    currentData = [];
+                } else if (line.includes('bp:') || line.startsWith('Total:')) {
+                    const parts = line.split(/\s+/).filter(p => p);
+                    if (parts.length >= 3) {
+                        currentData.push({
+                            range: parts.slice(0, parts.length - 2).join(' '),
+                            count: parts[parts.length - 2],
+                            bp: parts[parts.length - 1]
+                        });
+                    }
+                }
+            }
+            if (currentType) {
+                summary.variants.push({ type: currentType, data: currentData });
+            }
+            return summary;
+        }
+
+        function renderSummary(summary) {
+            const container = document.getElementById('summary-stats');
+            container.innerHTML = '';
+            document.getElementById('summary-container').style.display = 'block';
+
+            // Identify all unique ranges across all variants
+            const ranges = new Set();
+            summary.variants.forEach(v => {
+                v.data.forEach(d => {
+                    if (d.range !== 'Total:') ranges.add(d.range);
+                });
+            });
+            const sortedRanges = Array.from(ranges); // They are already mostly sorted from the script
+
+            // Overall totals card
+            const totalCard = document.createElement('div');
+            totalCard.className = 'card';
+            totalCard.style.gridColumn = '1 / -1';
+            totalCard.style.background = '#e3f2fd';
+            totalCard.style.border = '1px solid #90caf9';
+            totalCard.style.padding = '0.75rem 1.5rem';
+            totalCard.innerHTML = `
+                <div style="display:flex; justify-content: space-around; text-align:center;">
+                    <div>
+                        <span style="font-size:0.75rem; color:#546e7a; text-transform:uppercase; letter-spacing:1px; margin-right:10px;">Total Variants:</span>
+                        <span style="font-size:1.2rem; font-weight:bold; color:#1565c0;">${summary.totals.allCount}</span>
+                    </div>
+                    <div>
+                        <span style="font-size:0.75rem; color:#546e7a; text-transform:uppercase; letter-spacing:1px; margin-right:10px;">Bases Affected:</span>
+                        <span style="font-size:1.2rem; font-weight:bold; color:#1565c0;">${summary.totals.allBases}</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(totalCard);
+
+            const tableCard = document.createElement('div');
+            tableCard.className = 'card';
+            tableCard.style.gridColumn = '1 / -1';
+            tableCard.style.overflowX = 'auto';
+            tableCard.style.padding = '0';
+
+            const variantColors = {
+                'Insertion': '#E41A1C',
+                'Deletion': '#377EB8',
+                'Repeat_expansion': '#4DAF4A',
+                'Repeat_contraction': '#984EA3',
+                'Tandem_expansion': '#FF7F00',
+                'Tandem_contraction': '#A65628'
+            };
+
+            let tableHTML = `
+                <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                    <thead>
+                        <tr style="background:#f5f5f5; color:#666; text-transform:uppercase; font-size:0.7rem;">
+                            <th style="text-align:left; padding:10px 15px; border-bottom:1px solid #eee;">Variant Type</th>
+                            ${sortedRanges.map(r => `<th style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee;">${r}</th>`).join('')}
+                            <th style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee; background:#eee;">Total Count</th>
+                            <th style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee; background:#eee;">Total bp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            summary.variants.forEach(variant => {
+                const color = variantColors[variant.type] || '#999';
+                const totalRow = variant.data.find(d => d.range === 'Total:') || { count: '0', bp: '0' };
+                
+                tableHTML += `
+                    <tr>
+                        <td style="padding:10px 15px; border-bottom:1px solid #eee; border-left: 5px solid ${color}; font-weight:bold;">
+                            ${variant.type.replace('_', ' ')}
+                        </td>
+                        ${sortedRanges.map(r => {
+                            const d = variant.data.find(vd => vd.range === r);
+                            return `<td style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee;">${d ? d.count : '0'}</td>`;
+                        }).join('')}
+                        <td style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee; background:#fafafa; font-weight:bold;">${totalRow.count}</td>
+                        <td style="text-align:right; padding:10px 15px; border-bottom:1px solid #eee; background:#fafafa; color:#666;">${totalRow.bp} bp</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `</tbody></table>`;
+            tableCard.innerHTML = tableHTML;
+            container.appendChild(tableCard);
+        }
+
+        // Initialize worker
+        worker.postMessage({ type: 'init' });
+
+        // File handling
+        ui.dropzone.onclick = () => ui.fileInput.click();
+        ui.fileInput.onchange = async (e) => handleFile(e.target.files[0]);
+        
+        ui.dropzone.ondragover = (e) => { e.preventDefault(); ui.dropzone.classList.add('active'); };
+        ui.dropzone.ondragleave = () => ui.dropzone.classList.remove('active');
+        ui.dropzone.ondrop = (e) => {
+            e.preventDefault();
+            ui.dropzone.classList.remove('active');
+            handleFile(e.dataTransfer.files[0]);
+        };
+
+        async function handleFile(file) {
+            if (!file) return;
+            selectedFileName = file.name;
+            ui.filename.textContent = file.name;
+            ui.fileInfo.style.display = 'block';
+            ui.fileReadyMsg.style.display = 'block';
+            ui.dropzone.style.borderColor = '#2e7d32';
+            ui.dropzone.style.background = '#e8f5e9';
+            
+            const buffer = await file.arrayBuffer();
+            selectedFileData = new Uint8Array(buffer);
+            log(`Loaded local file: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
+        }
+
+        ui.useSampleBtn.onclick = async () => {
+            ui.useSampleBtn.disabled = true;
+            ui.useSampleBtn.textContent = "Loading Drosophila...";
+            log("Fetching Drosophila sample...");
+            try {
+                const response = await fetch('./sample_data/drosophila.delta.gz');
+                if (!response.ok) {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+                const buffer = await response.arrayBuffer();
+                selectedFileData = new Uint8Array(buffer);
+                selectedFileName = "drosophila.delta.gz";
+                ui.filename.textContent = selectedFileName;
+                ui.fileInfo.style.display = 'block';
+                ui.fileReadyMsg.style.display = 'block';
+                ui.dropzone.style.borderColor = '#2e7d32';
+                ui.dropzone.style.background = '#e8f5e9';
+                log("Drosophila sample loaded.");
+            } catch (err) {
+                log(`Failed to load sample: ${err.message}`, 'error');
+            } finally {
+                ui.useSampleBtn.disabled = false;
+                ui.useSampleBtn.textContent = "Use Drosophila Sample";
+            }
+        };
+
+        ui.runBtn.onclick = () => {
+            if (!selectedFileData) {
+                alert("Please select a file first!");
+                return;
+            }
+
+            ui.runBtn.disabled = true;
+            ui.runBtn.textContent = "⌛ Running...";
+            ui.introArea.style.display = 'none';
+            ui.resultsArea.style.display = 'block';
+            ui.plots.innerHTML = '';
+            ui.fileList.innerHTML = '';
+            ui.zipDownload.innerHTML = '';
+            ui.zipDownload.style.display = 'none';
+            ui.sampleBanner.innerHTML = '';
+            ui.sampleBanner.style.display = 'none';
+            ui.log.innerHTML = '';
+            results_cache.length = 0;
+            dotCoordsData = null;
+            dotIdxText = null;
+            dotApp = null;
+            showDotEmptyState();
+            ui.openInDotBtn.style.display = 'none';
+
+            log(`--- Starting Pipeline for ${selectedFileName} ---`);
+
+            const params = {
+                unique_length: document.getElementById('unique_length').value,
+                min_size: document.getElementById('min_size').value,
+                max_size: document.getElementById('max_size').value
+            };
+
+            worker.postMessage({
+                type: 'run',
+                fileData: selectedFileData,
+                params: params
+            });
+        };
+
+        function parseAssemblyStats(text) {
+            const refMatch = text.match(/^Reference:\s*(.+)$/m);
+            const queryMatch = text.match(/^Query:\s*(.+)$/m);
+            return {
+                reference: refMatch ? refMatch[1].trim() : null,
+                query: queryMatch ? queryMatch[1].trim() : null
+            };
+        }
+
+        function renderSampleBanner(stats) {
+            if (!stats.reference && !stats.query) return;
+            ui.sampleBanner.innerHTML =
+                `🧬 <b>Reference:</b> ${stats.reference || 'unknown'} &nbsp;&nbsp; <b>Query:</b> ${stats.query || 'unknown'}`;
+            ui.sampleBanner.style.display = 'block';
+        }
+
+        function renderZipDownload(name, url) {
+            ui.zipDownload.innerHTML = `
+                <div class="zip-label">
+                    <strong>📦 All results (recommended)</strong>
+                    Bundles all the files below and images above into a single ZIP archive for easy download and sharing.
+                </div>
+                <a class="zip-button" href="${url}" download="${name}">Download ${name}</a>
+            `;
+            ui.zipDownload.style.display = 'flex';
+        }
+
+        const DOWNLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg>`;
+
+        function displayResult(name, data) {
+            if (name === 'assemblytics_dot.coords') {
+                dotCoordsData = data;
+                maybeEnableDotButton();
+                // fall through to also create a download badge
+            }
+            if (name === 'assemblytics_dot.coords.idx') {
+                dotIdxText = new TextDecoder().decode(data);
+                maybeEnableDotButton();
+                // fall through to also create a download badge
+            }
+            if (name.endsWith('.png')) {
+                const blob = new Blob([data], { type: 'image/png' });
+                const url = URL.createObjectURL(blob);
+
+                const card = document.createElement('div');
+                card.className = 'card plot-card';
+                card.innerHTML = `<h4>${name}</h4><img src="${url}"><a class="download-icon" href="${url}" download="${name}" title="Download ${name}">${DOWNLOAD_ICON}</a>`;
+                ui.plots.appendChild(card);
+            } else if (name === 'assemblytics_structural_variants_summary.txt') {
+                const decoder = new TextDecoder();
+                const text = decoder.decode(data);
+                const summary = parseSummary(text);
+                renderSummary(summary);
+            } else if (name === 'assemblytics_results.zip') {
+                const blob = new Blob([data], { type: 'application/zip' });
+                const url = URL.createObjectURL(blob);
+                renderZipDownload(name, url);
+            } else {
+                const blob = new Blob([data], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+
+                if (name === 'assemblytics_assembly_stats.txt') {
+                    const decoder = new TextDecoder();
+                    renderSampleBanner(parseAssemblyStats(decoder.decode(data)));
+                }
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = name;
+                link.className = 'badge';
+                link.style.textDecoration = 'none';
+                link.style.color = '#666';
+                link.innerHTML = `${DOWNLOAD_ICON} ${name}`;
+                ui.fileList.appendChild(link);
+            }
+        }
+
+        function maybeEnableDotButton() {
+            if (dotCoordsData && dotIdxText) {
+                ui.openInDotBtn.style.display = 'block';
+            }
+        }
+
+        // --- Standalone Dot file upload ---
+        function setupDotDropzone(dropzoneId, inputId, labelId, ext, onLoad) {
+            const dz = document.getElementById(dropzoneId);
+            const input = document.getElementById(inputId);
+            const label = document.getElementById(labelId);
+            dz.onclick = () => input.click();
+            input.onchange = e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                label.textContent = '✓ ' + file.name;
+                dz.classList.add('loaded');
+                onLoad(file);
+            };
+        }
+
+        function setupDotUI() {
+            setupDotDropzone('dot-coords-dropzone', 'dot-coords-input', 'dot-coords-label', '.coords', file => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    dotStandaloneCoordsBlob = new Blob([e.target.result]);
+                    maybeEnableStandaloneDot();
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            setupDotDropzone('dot-idx-dropzone', 'dot-idx-input', 'dot-idx-label', '.idx', file => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    dotStandaloneIdxText = e.target.result;
+                    maybeEnableStandaloneDot();
+                };
+                reader.readAsText(file);
+            });
+
+            document.getElementById('dot-load-btn').onclick = () => {
+                if (dotStandaloneCoordsBlob && dotStandaloneIdxText) {
+                    dotApp = null;
+                    initDotApp(dotStandaloneCoordsBlob, dotStandaloneIdxText);
+                }
+            };
+        }
+
+        function maybeEnableStandaloneDot() {
+            const btn = document.getElementById('dot-load-btn');
+            if (btn && dotStandaloneCoordsBlob && dotStandaloneIdxText) btn.disabled = false;
+        }
+
+        setupDotUI();
+    </script>
+</body>
+</html>

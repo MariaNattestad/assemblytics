@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "assemblytics"
+version = "2.0.0"
+description = "Detect and analyze structural variants from a de novo genome assembly aligned to a reference genome"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Maria Nattestad" },
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+[project.urls]
+Homepage = "http://assemblytics.com/"
+Repository = "https://github.com/MariaNattestad/Assemblytics"
+
+[project.scripts]
+assemblytics = "assemblytics.cli:main"
+
+[tool.setuptools]
+packages = ["assemblytics"]

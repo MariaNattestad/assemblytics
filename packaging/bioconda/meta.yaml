@@ -1,0 +1,66 @@
+# DRAFT — not a live bioconda recipe.
+#
+# This is a starting point for updating the existing bioconda recipe at
+# https://github.com/bioconda/bioconda-recipes/blob/master/recipes/assemblytics/meta.yaml
+# (builds from MariaNattestad/Assemblytics v1.2.1, depends on R + the old Perl-ported
+# scripts). Assemblytics is now a pure-Python package (see pyproject.toml at the repo
+# root), so this draft drops all R/Perl dependencies. To actually publish this:
+#   1. Cut a v2.0.0 GitHub release/tag (and ideally a matching PyPI release, since
+#      bioconda recipes commonly build from a PyPI sdist).
+#   2. Fork bioconda/bioconda-recipes, replace recipes/assemblytics/meta.yaml with a
+#      version of this file (filling in the real sha256 for the v2.0.0 source archive),
+#      and open a PR there. That's a contribution to a third-party repo and should be
+#      reviewed/submitted by the project maintainer, not automated.
+
+{% set version = "2.0.0" %}
+
+package:
+  name: assemblytics
+  version: {{ version }}
+
+source:
+  # Once a v2.0.0 tag/release exists, replace this with the real tarball URL, e.g.:
+  #   url: https://github.com/MariaNattestad/Assemblytics/archive/v{{ version }}.tar.gz
+  # or, if also published to PyPI:
+  #   url: https://pypi.io/packages/source/a/assemblytics/assemblytics-{{ version }}.tar.gz
+  url: https://github.com/MariaNattestad/Assemblytics/archive/v{{ version }}.tar.gz
+  sha256: REPLACE_WITH_REAL_SHA256_OF_V2.0.0_TARBALL
+
+build:
+  number: 0
+  noarch: python
+  script: "{{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv"
+  entry_points:
+    - assemblytics = assemblytics.cli:main
+
+requirements:
+  host:
+    - python >=3.8
+    - pip
+    - setuptools
+  run:
+    - python >=3.8
+    - numpy
+    - pandas
+    - matplotlib
+    - mummer
+
+test:
+  commands:
+    - assemblytics --help
+  # A fuller smoke test (mirrors the old recipe's intent of running against a small
+  # real example) could look like:
+  #   - assemblytics -d input_examples/ecoli.delta.gz -o $PWD/test_out -l 1000
+  #   - test -s $PWD/test_out/assemblytics_structural_variants.bed
+
+about:
+  home: http://assemblytics.com/
+  license: MIT
+  license_family: MIT
+  summary: Detect and analyze structural variants from a de novo genome assembly aligned to a reference genome
+  doc_url: https://github.com/MariaNattestad/Assemblytics
+  dev_url: https://github.com/MariaNattestad/Assemblytics
+
+extra:
+  recipe-maintainers:
+    - MariaNattestad
