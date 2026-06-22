@@ -1,37 +1,8 @@
-# Assemblytics: a web analytics tool for the detection of variants from an assembly 
+# Assemblytics: detect variants from an assembly
 
 If you use Assemblytics, please cite our paper in Bioinformatics: http://www.ncbi.nlm.nih.gov/pubmed/27318204
 
-The preprint is still freely available on the BioRxiv: https://www.biorxiv.org/content/10.1101/044925v1
-
-## Input instructions
-IMPORTANT: Assemblytics has been configured to work only with MUMmer3 and using the following alignment instructions. Running Assemblytics with any other delta file as input may give errors or miscallibrated results.
-
-Upload a delta file to analyze alignments of an assembly to another assembly or a reference genome
-
-1. Download and install [MUMmer 3](https://sourceforge.net/projects/mummer/files/)
-2. Align your assembly to a reference genome using nucmer (from MUMmer package)
-```bash
-nucmer -maxmatch -l 100 -c 500 REFERENCE.fa ASSEMBLY.fa -prefix OUT
-# Settings above are important for unique anchor filtering to work correctly in Assemblytics.
-```
-Consult the [MUMmer 3 manual](https://mummer.sourceforge.net/manual/) if you encounter problems.
-
-3. Optional: Gzip the delta file to speed up upload (usually 2-4X faster)
-```
-gzip OUT.delta
-```
-Then use the OUT.delta.gz file for upload.
-
-4. Upload the .delta or delta.gz file to Assemblytics
-
-Important: Use only contigs rather than scaffolds from the assembly. This will prevent false positives when the number of Ns in the scaffolded sequence does not match perfectly to the distance in the reference.
-
-The unique sequence length required represents an anchor for determining if a sequence is unique enough to safely call variants from, which is an alternative to the mapping quality filter for read alignment.
-
-## Dependencies
-- Python 3.8+ with `numpy`, `pandas`, and `matplotlib` (installed automatically by `pip install -e .`, see Installation below)
-- [MUMmer 3](https://sourceforge.net/projects/mummer/files/) to generate the input delta file (see Input instructions above)
+BioRxiv preprint also available: https://www.biorxiv.org/content/10.1101/044925v1
 
 ## How Assemblytics works
 
@@ -42,6 +13,36 @@ Assemblytics analyzes alignments of a "query" assembly to a "reference" genome (
 3. **Calling Variants Within Alignments:** The pipeline also scans within individual alignments for mismatches in the gap sizes on the reference vs. query side.
 4. **Integration and Categorization:** All identified variants are combined and categorized by type (Insertion, Deletion, Tandem Expansion/Contraction, Repeat Expansion/Contraction) and size.
 5. **Visualization and Summary:** Finally, the tool generates summary statistics and several plots, including a dot plot of filtered alignments, an Nchart of the assembly, and size distributions of all called variants.
+
+## How to use Assemblytics
+
+1. Align your assembly fasta file to some kind of reference you want to compare against. See `nucmer` input instructions below for the exact command we recommend.
+2. Go to [assemblytics.com](https://assemblytics.com) and input your .delta file for analysis. 
+
+Important: Use only contigs rather than scaffolds from the assembly. This will prevent false positives when the number of Ns in the scaffolded sequence does not match perfectly to the distance in the reference.
+
+## `nucmer` input instructions
+
+See my [MUMmer tutorial on sandbox.bio](https://sandbox.bio/tutorials/mummer-circa).
+
+IMPORTANT: Assemblytics was built for `nucmer -maxmatch` output and tuned to the following parameters, which is important for making the unique anchor filtering in Assemblytics work correctly.
+
+Upload a delta file to analyze alignments of an assembly to another assembly or a reference genome
+
+1. Download and install [MUMmer 4](https://github.com/mummer4/mummer/releases).
+2. Align your assembly to a reference genome using nucmer (from MUMmer package)
+```bash
+nucmer -maxmatch -l 100 -c 500 REFERENCE.fa ASSEMBLY.fa -prefix OUT
+# Settings above are important for unique anchor filtering to work correctly in Assemblytics.
+# I increased -l to 10000 for the human in input_examples, which cut down on file size significantly at the cost of losing a lot of sensitivity and thus alignments. I don't really recommend setting it that high for your main analysis, but it can be useful for a fast initial run.
+
+# Optionally gzip
+gzip OUT.delta
+```
+
+Consult the [MUMmer github](https://github.com/mummer4/mummer/releases) if you encounter problems.
+
+3. Use the output .delta or .delta.gz file at assemblytics.com
 
 ## FAQ
 
@@ -56,17 +57,34 @@ See this example showing the point of unique anchor filtering (from the bioRxiv 
 <b>Supplementary Figure 1 caption:</b> Each repetitive element in a genome assembly can map ambiguously to multiple locations in the reference genome. Delta-filter, a component of MUMmer, filters repetitive alignments using a longest-increasing subsequence (LIS) dynamic programming algorithm to select subsets of long, high-identity alignments while penalizing overlaps (Kurtz et al., 2004; Phillippy et al., 2008). In contrast, Assemblytics eliminates repeats lacking substantial unique anchoring sequence (default: 10 kb). <b>A</b>. Example: a simulated 20 kb contig sequence matches three locations in the reference except for a single nucleotide (red point) providing a better match on the right. <b>B</b>. Dot plot of all raw, unfiltered alignments from nucmer. <b>C</b>. Dot plot after <code>delta-filter -r</code> (equivalent to unfiltered). <b>D</b>. Dot plot after <code>delta-filter -q</code>; here, a single nucleotide is enough for <code>-q</code> to prefer the third alignment. <b>E</b>. Dot plot after Assemblytics unique anchor filtering: only alignments with at least 10 kb uniquely anchored sequence (aligning to a single position in the reference) are retained; the repeats are removed. Assemblytics annotates structural variants within such filtered gaps as repeat expansions or contractions, depending on whether the gap is larger in the query or reference, respectively. No variant is reported unless the gap size changes, so repeats themselves are not reported as SVs—only expansions (increased size) or contractions (decreased size) are.
 </sub>
 
-## Installation
+### How long does the analysis take?
+
+The analysis will run in a few seconds for most genomes, and for the human example which is a 6 MB gzipped delta, it takes 50 seconds. It should scale linearly with file size, so expect at least a minute per 10MB. On assemblytics.com, it runs client-side meaning using your computer's own CPU, so if you are working on a really slow computer, it could run somewhat slower. If it's an issue, see nucmer instructions note on `-l` above, or consider running the python version.
+
+### What aligners can I use?
+Assemblytics was built on [MUMmer 3](https://sourceforge.net/projects/mummer/files/) but MUMmer 4 is still compatible. Other aligners do not produce .delta files but rather SAM/BAM outputs, which MUMmer 4 also supports now, but MUMmer was sort of the original aligner for genome assemblies (as opposed to reads), so that's what Assemblytics was built to work with. Many choices about which alignments are kept are also going to be different from other aligners, so I don't recommend using Assemblytics with anything other than MUMmer.
+
+### why no translocations?
+
+By default, candidate variants that span two different reference chromosomes ("Interchromosomal") are left out of the main results, since most of them come from misassemblies rather than real variants. Pass `--long-range` to also write these candidates to a separate `assemblytics_long_range_variants.bed`, so they're easy to find but clearly kept apart from the main, higher-confidence call set:
 
 ```bash
-pip install -e .
+assemblytics -d input_examples/ecoli.delta.gz -o ecoli_output --long-range
+
+# In addition to the usual output, this also writes ecoli_output/assemblytics_long_range_variants.bed.
+# These candidates are usually misassemblies, but can occasionally be real translocations or
+# other large-scale rearrangements -- review them manually before trusting them as true variants.
 ```
 
-This installs the `assemblytics` package (the orchestrator and all of its pipeline stages live in `public/assemblytics/` -- it's kept inside `public/` so the same files are served directly to the web app, with no separate copy to keep in sync) along with an `assemblytics` console command. A versioned release on PyPI and an updated bioconda recipe are in progress (see `packaging/bioconda/meta.yaml` for a draft).
+## Python-only version for pipelines
 
-If you'd rather not install anything, you can run the pipeline directly from a clone: `cd public && python -m assemblytics.cli` instead of `assemblytics` in any command below (input/output paths are then relative to `public/`, e.g. `../input_examples/...`).
+Depends on Python 3.8+, and includes `numpy`, `pandas`, and `matplotlib` dependencies.
 
-## Command-line instructions
+```bash
+pip install assemblytics
+```
+
+### Command-line instructions
 
 The `assemblytics` command orchestrates the entire pipeline from filtering to plotting.
 
@@ -81,16 +99,6 @@ assemblytics -d input_examples/ecoli.delta.gz -o ecoli_output
 # The output should match the one in the output_examples/ecoli folder.
 
 # Defaults are unique_length=10000, minimum_size=50, maximum_size=10000. For small genomes (e.g. bacteria), you may want to reduce the unique_length to 1000.
-```
-
-By default, candidate variants that span two different reference chromosomes ("Interchromosomal") or that are larger than `--maximum_size` ("Longrange") are left out of the main results, since most of them come from misassemblies rather than real variants. Pass `--long-range` to also write these candidates to a separate `assemblytics_long_range_variants.bed`, so they're easy to find but clearly kept apart from the main, higher-confidence call set:
-
-```bash
-assemblytics -d input_examples/ecoli.delta.gz -o ecoli_output --long-range
-
-# In addition to the usual output, this also writes ecoli_output/assemblytics_long_range_variants.bed.
-# These candidates are usually misassemblies, but can occasionally be real translocations or
-# other large-scale rearrangements -- review them manually before trusting them as true variants.
 ```
 
 ## Testing
@@ -158,3 +166,15 @@ make wheel
 ```
 
 This runs `python3 -m build --wheel` and copies the result into `public/`. If you bump the version in `pyproject.toml`, also update the filename on line 18 of `public/worker.js` to match.
+
+
+```bash
+git clone https://github.com/MariaNattestad/assemblytics.git
+cd assemblytics
+pip install -e .
+```
+
+This installs the `assemblytics` package (the orchestrator and all of its pipeline stages live in `public/assemblytics/` -- it's kept inside `public/` so the same files are served directly to the web app, with no separate copy to keep in sync) along with an `assemblytics` console command. A versioned release on PyPI and an updated bioconda recipe are in progress (see `packaging/bioconda/meta.yaml` for a draft).
+
+If you'd rather not install anything, you can run the pipeline directly from a clone: `cd public && python -m assemblytics.cli` instead of `assemblytics` in any command below (input/output paths are then relative to `public/`, e.g. `../input_examples/...`).
+
