@@ -28,7 +28,6 @@ requirements:
     - numpy
     - pandas
     - matplotlib
-    - mummer
 
 test:
   commands:
