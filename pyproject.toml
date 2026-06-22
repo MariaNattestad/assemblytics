@@ -24,7 +24,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "http://assemblytics.com/"
+Homepage = "https://assemblytics.com/"
 Repository = "https://github.com/MariaNattestad/assemblytics"
 
 [project.scripts]
