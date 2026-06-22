@@ -57,11 +57,14 @@ See this example showing the point of unique anchor filtering (from the bioRxiv 
 <b>Supplementary Figure 1 caption:</b> Each repetitive element in a genome assembly can map ambiguously to multiple locations in the reference genome. Delta-filter, a component of MUMmer, filters repetitive alignments using a longest-increasing subsequence (LIS) dynamic programming algorithm to select subsets of long, high-identity alignments while penalizing overlaps (Kurtz et al., 2004; Phillippy et al., 2008). In contrast, Assemblytics eliminates repeats lacking substantial unique anchoring sequence (default: 10 kb). <b>A</b>. Example: a simulated 20 kb contig sequence matches three locations in the reference except for a single nucleotide (red point) providing a better match on the right. <b>B</b>. Dot plot of all raw, unfiltered alignments from nucmer. <b>C</b>. Dot plot after <code>delta-filter -r</code> (equivalent to unfiltered). <b>D</b>. Dot plot after <code>delta-filter -q</code>; here, a single nucleotide is enough for <code>-q</code> to prefer the third alignment. <b>E</b>. Dot plot after Assemblytics unique anchor filtering: only alignments with at least 10 kb uniquely anchored sequence (aligning to a single position in the reference) are retained; the repeats are removed. Assemblytics annotates structural variants within such filtered gaps as repeat expansions or contractions, depending on whether the gap is larger in the query or reference, respectively. No variant is reported unless the gap size changes, so repeats themselves are not reported as SVs—only expansions (increased size) or contractions (decreased size) are.
 </sub>
 
+For small genomes (e.g. bacteria), you may want to reduce the unique_length to 1000.
+
 ### How long does the analysis take?
 
 The analysis will run in a few seconds for most genomes, and for the human example which is a 6 MB gzipped delta, it takes 50 seconds. It should scale linearly with file size, so expect at least a minute per 10MB. On assemblytics.com, it runs client-side meaning using your computer's own CPU, so if you are working on a really slow computer, it could run somewhat slower. If it's an issue, see nucmer instructions note on `-l` above, or consider running the python version.
 
 ### What aligners can I use?
+
 Assemblytics was built on [MUMmer 3](https://sourceforge.net/projects/mummer/files/) but MUMmer 4 is still compatible. Other aligners do not produce .delta files but rather SAM/BAM outputs, which MUMmer 4 also supports now, but MUMmer was sort of the original aligner for genome assemblies (as opposed to reads), so that's what Assemblytics was built to work with. Many choices about which alignments are kept are also going to be different from other aligners, so I don't recommend using Assemblytics with anything other than MUMmer.
 
 ### why no translocations?
@@ -78,13 +81,12 @@ assemblytics -d input_examples/ecoli.delta.gz -o ecoli_output --long-range
 
 ## Python-only version for pipelines
 
+The python part of Assemblytics can be run without the web app.
 Depends on Python 3.8+, and includes `numpy`, `pandas`, and `matplotlib` dependencies.
 
 ```bash
 pip install assemblytics
 ```
-
-### Command-line instructions
 
 The `assemblytics` command orchestrates the entire pipeline from filtering to plotting.
 
@@ -97,9 +99,40 @@ Example using the provided *E. coli* sample:
 assemblytics -d input_examples/ecoli.delta.gz -o ecoli_output
 
 # The output should match the one in the output_examples/ecoli folder.
-
-# Defaults are unique_length=10000, minimum_size=50, maximum_size=10000. For small genomes (e.g. bacteria), you may want to reduce the unique_length to 1000.
 ```
+
+## Development instructions
+
+### Python
+
+```bash
+git clone https://github.com/MariaNattestad/assemblytics.git
+cd assemblytics
+pip install -e .
+assemblytics
+```
+
+### Local web app
+
+The web app (`public/`) runs the entire Assemblytics pipeline client-side in the browser via [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly) in a Web Worker. There is no server-side code, no upload step, and no installation beyond a static file server — your delta file never leaves your machine.
+
+To run it locally, serve the `public/` folder with any static file server, for example:
+
+```bash
+cd assemblytics
+python3 -m http.server 8000 --directory public
+# Then open http://localhost:8000 in your browser
+```
+
+The Python source lives in `assemblytics/` at the repo root. The web app loads it as a Python wheel (`public/assemblytics-2.0.0-py3-none-any.whl`) installed at runtime by Pyodide's `micropip`.
+
+After editing any Python files under `assemblytics/`, rebuild the wheel before testing or deploying:
+
+```bash
+make wheel
+```
+
+This runs `python3 -m build --wheel` and copies the result into `public/`. If you bump the version in `pyproject.toml`, also update the filename on line 18 of `public/worker.js` to match.
 
 ## Testing
 
@@ -142,39 +175,3 @@ diff <(tail -n +2 /tmp/assemblytics_test/human/assemblytics_structural_variants.
 (No `pip install -e .` yet? Run these from inside `public/` instead, replacing `assemblytics` with `python -m assemblytics.cli` and adjusting the `input_examples/`/`output_examples/` paths to `../input_examples/`/`../output_examples/`.)
 
 Each `diff` should print nothing (no differences) followed by the "OK" line. The `tail -n +2` skips the header line, and `sort` makes the comparison order-independent since variant IDs can legitimately be assigned in a different order between runs.
-
-## Local web app instructions
-
-The web app (`public/`) runs the entire Assemblytics pipeline client-side in the browser via [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly) and a Web Worker. There is no server-side code, no upload step, and no installation beyond a static file server — your delta file never leaves your machine.
-
-To run it locally, serve the `public/` folder with any static file server, for example:
-
-```bash
-cd assemblytics
-python3 -m http.server 8000 --directory public
-# Then open http://localhost:8000 in your browser
-```
-
-## Development instructions
-
-The Python source lives in `assemblytics/` at the repo root. The web app loads it as a Python wheel (`public/assemblytics-2.0.0-py3-none-any.whl`) installed at runtime by Pyodide's `micropip`.
-
-After editing any Python files under `assemblytics/`, rebuild the wheel before testing or deploying:
-
-```bash
-make wheel
-```
-
-This runs `python3 -m build --wheel` and copies the result into `public/`. If you bump the version in `pyproject.toml`, also update the filename on line 18 of `public/worker.js` to match.
-
-
-```bash
-git clone https://github.com/MariaNattestad/assemblytics.git
-cd assemblytics
-pip install -e .
-```
-
-This installs the `assemblytics` package (the orchestrator and all of its pipeline stages live in `public/assemblytics/` -- it's kept inside `public/` so the same files are served directly to the web app, with no separate copy to keep in sync) along with an `assemblytics` console command. A versioned release on PyPI and an updated bioconda recipe are in progress (see `packaging/bioconda/meta.yaml` for a draft).
-
-If you'd rather not install anything, you can run the pipeline directly from a clone: `cd public && python -m assemblytics.cli` instead of `assemblytics` in any command below (input/output paths are then relative to `public/`, e.g. `../input_examples/...`).
-
