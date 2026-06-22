@@ -8,7 +8,7 @@ import os
 import sys
 import zipfile
 
-from .dot_prep import run as run_dot_prep
+from .dot_prep import index_for_dot
 from .dotplot import run as run_dotplot
 from .index import run as run_index
 from .nchart import run as run_nchart
@@ -81,7 +81,7 @@ def run(args):
     log_progress(log_file, "STARTING,DONE,Starting unique anchor filtering.")
 
     print("1. Filter delta file")
-    run_uniq_anchor(
+    reference_lengths, fields_by_query = run_uniq_anchor(
         argparse.Namespace(
             delta=delta,
             out=output_dir,
@@ -153,15 +153,7 @@ def run(args):
 
     print("5. Preparing interactive Dot plot")
     dot_prefix = os.path.join(output_dir, "assemblytics_dot")
-    run_dot_prep(
-        argparse.Namespace(
-            delta=delta,
-            out=dot_prefix,
-            unique_length=unique_length,
-            overview=1000,
-        ),
-        write_delta=False,
-    )
+    index_for_dot(reference_lengths, fields_by_query, dot_prefix, 1000)
     print("FILE_READY:assemblytics_dot.coords")
     print("FILE_READY:assemblytics_dot.coords.idx")
 
