@@ -48,10 +48,10 @@ Consult the [MUMmer github](https://github.com/mummer4/mummer/releases) if you e
 
 ### What do the different variant types mean? What is tandem expansion versus repeat expansion?
 
-![variants types in Assemblytics](docs/variant_types_in_Assemblytics.jpg)
+![variants types in Assemblytics](https://raw.githubusercontent.com/MariaNattestad/assemblytics/main/docs/variant_types_in_Assemblytics.jpg)
 
 ### What is unique anchor filtering for?
-See this example showing the point of unique anchor filtering (from the bioRxiv preprint supplementary materials): ![unique anchor filtering](docs/unique_anchor_filtering.png)
+See this example showing the point of unique anchor filtering (from the bioRxiv preprint supplementary materials): ![unique anchor filtering](https://raw.githubusercontent.com/MariaNattestad/assemblytics/main/docs/unique_anchor_filtering.png)
 
 <sub>
 <b>Supplementary Figure 1 caption:</b> Each repetitive element in a genome assembly can map ambiguously to multiple locations in the reference genome. Delta-filter, a component of MUMmer, filters repetitive alignments using a longest-increasing subsequence (LIS) dynamic programming algorithm to select subsets of long, high-identity alignments while penalizing overlaps (Kurtz et al., 2004; Phillippy et al., 2008). In contrast, Assemblytics eliminates repeats lacking substantial unique anchoring sequence (default: 10 kb). <b>A</b>. Example: a simulated 20 kb contig sequence matches three locations in the reference except for a single nucleotide (red point) providing a better match on the right. <b>B</b>. Dot plot of all raw, unfiltered alignments from nucmer. <b>C</b>. Dot plot after <code>delta-filter -r</code> (equivalent to unfiltered). <b>D</b>. Dot plot after <code>delta-filter -q</code>; here, a single nucleotide is enough for <code>-q</code> to prefer the third alignment. <b>E</b>. Dot plot after Assemblytics unique anchor filtering: only alignments with at least 10 kb uniquely anchored sequence (aligning to a single position in the reference) are retained; the repeats are removed. Assemblytics annotates structural variants within such filtered gaps as repeat expansions or contractions, depending on whether the gap is larger in the query or reference, respectively. No variant is reported unless the gap size changes, so repeats themselves are not reported as SVs—only expansions (increased size) or contractions (decreased size) are.
