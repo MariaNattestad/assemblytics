@@ -30,11 +30,9 @@ def run(args):
     try:
         f = gzip.open(filename, 'rt')
         header1 = f.readline().strip()
-        # Detected gzipped delta file.
-    except:
+    except Exception:  # noqa: BLE001 — fallback for uncompressed delta
         f = open(filename, 'r')
         header1 = f.readline().strip()
-        # Detected uncompressed delta file.
    
     # Skip the second line
     f.readline()
@@ -97,11 +95,9 @@ def run(args):
     try:
         f = gzip.open(filename, 'rt')
         header1 = f.readline()
-        # Detected gzipped delta file.
-    except:
+    except Exception:  # noqa: BLE001 — fallback for uncompressed delta
         f = open(filename, 'r')
         header1 = f.readline()
-        # Detected uncompressed delta file.
 
     fout.write(header1)
     fout.write(f.readline())
@@ -112,6 +108,7 @@ def run(args):
     list_of_alignments_to_keep = []
     alignment_counter = {}
     keep_printing = False
+    query = ""
 
     # For coords:
     current_query_name = ""
@@ -152,7 +149,7 @@ def run(args):
             for index in list_of_alignments_to_keep:
                 if line.strip() == header_lines_by_query[query][index]:
                     header_needed = True
-            if header_needed == True:
+            if header_needed:
                 fout.write(line) # if we have any alignments under this header, print the header
             alignment_counter[query] = alignment_counter.get(query,0)
 
@@ -204,7 +201,7 @@ def run(args):
                 )
                 alignment_counter[query] = alignment_counter[query] + 1
 
-            elif keep_printing == True:
+            elif keep_printing:
                 fout.write(line)
 
     fcoords_out_tab.close()
