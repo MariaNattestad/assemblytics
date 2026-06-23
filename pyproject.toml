@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "assemblytics"
-version = "2.0.0"
+version = "2.0.1"
 description = "Detect and analyze structural variants from a de novo genome assembly aligned to a reference genome"
 readme = "README.md"
 license = { text = "MIT" }

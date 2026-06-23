@@ -15,7 +15,7 @@ matplotlib.use('Agg')
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 import micropip
-await micropip.install('./assemblytics-2.0.0-py3-none-any.whl')
+await micropip.install('./assemblytics-2.0.1-py3-none-any.whl')
         `);
 
         self.postMessage({ type: 'status', message: 'Environment Ready' });
