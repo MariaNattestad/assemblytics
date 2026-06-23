@@ -30,5 +30,11 @@ Repository = "https://github.com/MariaNattestad/assemblytics"
 [project.scripts]
 assemblytics = "assemblytics.cli:main"
 
+[project.optional-dependencies]
+dev = ["pytest"]
+
 [tool.setuptools]
 packages = ["assemblytics"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
