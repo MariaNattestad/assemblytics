@@ -17,7 +17,8 @@ Assemblytics analyzes alignments of a "query" assembly to a "reference" genome (
 ## How to use Assemblytics
 
 1. Align your assembly fasta file to some kind of reference you want to compare against. See `nucmer` input instructions below for the exact command we recommend.
-2. Go to [assemblytics.com](https://assemblytics.com) and input your .delta file for analysis. 
+2. Go to [https://marianattestad.github.io/assemblytics/](https://marianattestad.github.io/assemblytics/ 
+) and input your .delta file for analysis. 
 
 Important: Use only contigs rather than scaffolds from the assembly. This will prevent false positives when the number of Ns in the scaffolded sequence does not match perfectly to the distance in the reference.
 
@@ -42,7 +43,8 @@ gzip OUT.delta
 
 Consult the [MUMmer github](https://github.com/mummer4/mummer/releases) if you encounter problems.
 
-3. Use the output .delta or .delta.gz file at assemblytics.com
+3. Use the output .delta or .delta.gz file at [https://marianattestad.github.io/assemblytics/ 
+](https://marianattestad.github.io/assemblytics/)
 
 ## FAQ
 
@@ -61,7 +63,9 @@ For small genomes (e.g. bacteria), you may want to reduce the unique_length to 1
 
 ### How long does the analysis take?
 
-The analysis will run in a few seconds for most genomes, and for the human example which is a 6 MB gzipped delta, it takes 50 seconds. It should scale linearly with file size, so expect at least a minute per 10MB. On assemblytics.com, it runs client-side meaning using your computer's own CPU, so if you are working on a really slow computer, it could run somewhat slower. If it's an issue, see nucmer instructions note on `-l` above, or consider running the python version.
+The analysis will run in a few seconds for most genomes, and for the human example which is a 6 MB gzipped delta, it takes 50 seconds. It should scale linearly with file size, so expect at least a minute per 10MB. On [https://marianattestad.github.io/assemblytics/ 
+](https://marianattestad.github.io/assemblytics/ 
+), it runs client-side meaning using your computer's own CPU, so if you are working on a really slow computer, it could run somewhat slower. If it's an issue, see nucmer instructions note on `-l` above, or consider running the python version.
 
 ### What aligners can I use?
 
