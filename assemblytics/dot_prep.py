@@ -93,7 +93,7 @@ def index_for_dot(reference_lengths, fields_by_query, output_prefix, max_overvie
 
 		# orientation:
 		flip = sum_reverse > sum_forward
-		flip_by_query[query_name] = "-" if (flip == True) else "+"
+		flip_by_query[query_name] = "-" if flip else "+"
 
 
 		for tag in ordered_tags:
@@ -103,7 +103,7 @@ def index_for_dot(reference_lengths, fields_by_query, output_prefix, max_overvie
 
 			for fields in lines:
 				if fields[8] == tag:
-					if flip == True:
+					if flip:
 						fields[2] = int(fields[5]) - int(fields[2])
 						fields[3] = int(fields[5]) - int(fields[3])
 
@@ -138,7 +138,7 @@ def index_for_dot(reference_lengths, fields_by_query, output_prefix, max_overvie
 	f_out_index.write("#query\n")
 	f_out_index.write("query,query_length,orientation,bytePosition_unique,bytePosition_repetitive,bytePosition_end,unique_matching_refs,matching_refs\n")
 	# relative_ref_position_by_query is sorted by rel_pos
-	for query,rel_pos in relative_ref_position_by_query:
+	for query,_ in relative_ref_position_by_query:
 		f_out_index.write("%s,%d,%s,%d,%d,%d,%s,%s\n" % (query, query_lengths[query], flip_by_query[query], query_byte_positions[(query,"unique")], query_byte_positions[(query,"repetitive")] - query_byte_positions[(query,"unique")], query_byte_positions[(query,"end")] - query_byte_positions[(query,"repetitive")], "~".join(unique_references_by_query[query]), "~".join(all_references_by_query[query])))
 
 	f_out_index.write("#overview\n")

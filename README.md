@@ -141,6 +141,9 @@ This runs `python3 -m build --wheel` and copies the result into `public/`. If yo
 To re-run the pipeline on each input and diff its variant calls against the matching example output:
 
 ```bash
+pip3 uninstall assemblytics        # remove whatever's installed
+pip3 install -e .                  # install editable from current directory
+
 # E. coli (uses a smaller unique anchor length since it's a small genome)
 assemblytics -d input_examples/ecoli.delta.gz -o /tmp/assemblytics_test/ecoli -l 1000
 diff <(tail -n +2 /tmp/assemblytics_test/ecoli/assemblytics_structural_variants.bed | sort) \

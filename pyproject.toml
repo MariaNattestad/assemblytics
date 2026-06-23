@@ -31,10 +31,38 @@ Repository = "https://github.com/MariaNattestad/assemblytics"
 assemblytics = "assemblytics.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "pylint"]
 
 [tool.setuptools]
 packages = ["assemblytics"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.pylint.format]
+max-line-length = 250
+
+[tool.pylint."messages control"]
+disable = [
+    "missing-module-docstring",
+    "missing-function-docstring",
+    "missing-class-docstring",
+    "trailing-whitespace",
+    "wrong-import-order",
+    "wrong-import-position",
+    "import-outside-toplevel",
+    "too-many-locals",
+    "too-many-branches",
+    "too-many-statements",
+    "too-many-positional-arguments",
+    "too-many-arguments",
+    "consider-using-f-string",
+    "consider-using-with",
+    "consider-using-dict-items",
+    "unspecified-encoding",
+    "duplicate-code",
+    "bad-indentation",
+    "redefined-outer-name",
+    "chained-comparison",
+    "broad-exception-caught",
+]

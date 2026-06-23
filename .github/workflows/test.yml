@@ -20,3 +20,6 @@ jobs:
 
       - name: Run tests
         run: pytest tests/ -v
+
+      - name: Lint
+        run: pylint assemblytics/ --fail-under=9.0
