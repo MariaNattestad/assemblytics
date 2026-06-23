@@ -26,14 +26,14 @@ Important: Use only contigs rather than scaffolds from the assembly. This will p
 
 See my [MUMmer tutorial on sandbox.bio](https://sandbox.bio/tutorials/mummer-circa).
 
-IMPORTANT: Assemblytics was built for `nucmer -maxmatch` output and tuned to the following parameters, which is important for making the unique anchor filtering in Assemblytics work correctly.
+IMPORTANT: Assemblytics was built for `nucmer --maxmatch` output and tuned to the following parameters, which is important for making the unique anchor filtering in Assemblytics work correctly.
 
 Upload a delta file to analyze alignments of an assembly to another assembly or a reference genome
 
 1. Download and install [MUMmer 4](https://github.com/mummer4/mummer/releases).
 2. Align your assembly to a reference genome using nucmer (from MUMmer package)
 ```bash
-nucmer -maxmatch -l 100 -c 500 REFERENCE.fa ASSEMBLY.fa -prefix OUT
+nucmer --maxmatch -l 100 -c 500 REFERENCE.fa ASSEMBLY.fa -prefix OUT
 # Settings above are important for unique anchor filtering to work correctly in Assemblytics.
 # I increased -l to 10000 for the human in input_examples, which cut down on file size significantly at the cost of losing a lot of sensitivity and thus alignments. I don't really recommend setting it that high for your main analysis, but it can be useful for a fast initial run.
 
