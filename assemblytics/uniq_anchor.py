@@ -8,6 +8,10 @@ import numpy as np
 import operator
 
 
+def scrub(string):
+    return string.replace(",","_").replace("!","_").replace("~","_").replace("#","_")
+
+
 def run(args):
     filename = args.delta
     unique_length = args.unique_length
@@ -123,6 +127,11 @@ def run(args):
     ref_lengths = []
     query_lengths = []
 
+    # For dot index (returned to caller):
+    reference_lengths_for_dot = []
+    fields_by_query_for_dot = {}
+    seen_ref_names_for_dot = set()
+
     # For genome length files (only sequences with at least one unique alignment,
     # matching what ends up in coords.tab)
     unique_ref_entries = {}
@@ -154,6 +163,13 @@ def run(args):
             current_reference_size = int(fields[2])
             current_query_size = int(fields[3])
 
+            # For dot index:
+            scrubbed_ref = scrub(current_reference_name)
+            scrubbed_query = scrub(current_query_name)
+            if scrubbed_ref not in seen_ref_names_for_dot:
+                seen_ref_names_for_dot.add(scrubbed_ref)
+                reference_lengths_for_dot.append((scrubbed_ref, current_reference_size))
+
             # For basic assembly stats:
             if not current_reference_name in ref_sequences:
                 ref_lengths.append(current_reference_size)
@@ -181,6 +197,11 @@ def run(args):
                 else:
                     keep_printing = False
                 fcoords_out_csv.write(",".join(map(str,[ref_start,ref_end,query_start, query_end,current_reference_size,current_query_size,current_reference_name.replace(",","_"),current_query_name.replace(",","_"),csv_tag])) + "\n")
+                fields_by_query_for_dot.setdefault(scrubbed_query, []).append(
+                    [str(ref_start), str(ref_end), str(query_start), str(query_end),
+                     str(current_reference_size), str(current_query_size),
+                     scrubbed_ref, scrubbed_query, csv_tag]
+                )
                 alignment_counter[query] = alignment_counter[query] + 1
 
             elif keep_printing == True:
@@ -226,6 +247,9 @@ def run(args):
     f.close()
     fout.close()
     f_stats_out.close()
+
+    return reference_lengths_for_dot, fields_by_query_for_dot
+
 
 def N50(sorted_list):
     # List should be sorted as increasing
