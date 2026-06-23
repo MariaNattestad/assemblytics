@@ -178,3 +178,21 @@ diff <(tail -n +2 /tmp/assemblytics_test/human/assemblytics_structural_variants.
 (No `pip install -e .` yet? Run these from inside `public/` instead, replacing `assemblytics` with `python -m assemblytics.cli` and adjusting the `input_examples/`/`output_examples/` paths to `../input_examples/`/`../output_examples/`.)
 
 Each `diff` should print nothing (no differences) followed by the "OK" line. The `tail -n +2` skips the header line, and `sort` makes the comparison order-independent since variant IDs can legitimately be assigned in a different order between runs.
+
+## Cutting a new release
+
+1. **Bump the version** in `pyproject.toml` and `assemblytics/__init__.py`.
+2. **Update `public/worker.js` line 18** to reference the new wheel filename.
+3. **Rebuild the wheel** and copy it into `public/`:
+   ```bash
+   make wheel
+   ```
+4. **Remove the old wheel** from `public/` and commit everything.
+5. **Push to `main`** and merge.
+6. **Fix the GitHub release tag** — if you created the tag before the version bump commit landed on `main`, delete it and recreate it:
+   ```bash
+   git tag -d vX.Y.Z
+   git push origin :refs/tags/vX.Y.Z
+   ```
+   Then create a new release on GitHub targeting the updated `main`. This triggers the **Publish to PyPI** workflow automatically via OIDC Trusted Publishing.
+7. **Update the bioconda recipe** (`packaging/bioconda/meta.yaml`): bump the version and update the `sha256` to match the new PyPI tarball (find it on the PyPI release page or with `pip download assemblytics==X.Y.Z && sha256sum assemblytics-X.Y.Z.tar.gz`).
